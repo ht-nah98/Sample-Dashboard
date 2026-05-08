@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>RPM Dashboard – HG Media / RedOne</title>
+<title>RPM Dashboard – HG Media / Only Me</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 :root {
@@ -163,7 +163,7 @@ code{background:rgba(0,0,0,.06);padding:1px 5px;border-radius:4px;font-size:11px
 
 <!-- TOP NAV -->
 <nav class="topnav">
-  <div class="logo">HG<em>Media</em> · RedOne</div>
+  <div class="logo">HG<em>Media</em> · Only Me</div>
   <div class="nav-tabs">
     <button class="nav-tab active" onclick="switchTab('rpm',this)">📊 RPM</button>
     <button class="nav-tab" onclick="switchTab('view',this)">👁 View</button>
@@ -1999,7 +1999,7 @@ function renderTeamMonetize(){
   // so approximate from teams_meta ratios (from original CSV analysis)
   const MONETIZE_RATE = {
     'MKT3':49,'Tuấn 2K':49,'Vĩnh Kinh':43,'Bùi Thể':45,
-    'MKT1':35,'Hải Nam':28,'Team Tuyên':20,'MKT2':26,'RedOne':4,'Quang Duy':0
+    'MKT1':35,'Hải Nam':28,'Team Tuyên':20,'MKT2':26,'Only Me':4,'Quang Duy':0
   };
   const teams = filteredTeams();
   const data  = teams.map(t=>({ name:t, rate: MONETIZE_RATE[t]||0, count: totalMap[t]||0 }))
