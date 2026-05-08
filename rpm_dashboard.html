@@ -1,0 +1,2195 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>RPM Dashboard – HG Media / RedOne</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg:      #f8f9fc;
+  --surface: #ffffff;
+  --surface2:#f1f3f8;
+  --border:  #e3e6ef;
+  --text:    #1a1d2e;
+  --sub:     #6b7280;
+  --blue:    #1a73e8;
+  --blue-lt: #e8f0fe;
+  --green:   #1e8e3e;
+  --green-lt:#e6f4ea;
+  --red:     #d93025;
+  --red-lt:  #fce8e6;
+  --yellow:  #f29900;
+  --yel-lt:  #fef7e0;
+  --purple:  #7b2d8b;
+  --shadow:  0 1px 3px rgba(0,0,0,.08), 0 1px 8px rgba(0,0,0,.04);
+  --shadow2: 0 2px 10px rgba(0,0,0,.10);
+  --radius:  12px;
+  --font:    'Google Sans','Segoe UI',system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:13px;min-height:100vh;}
+
+/* ── TOP NAV ── */
+.topnav{display:flex;align-items:center;gap:0;padding:0 24px;background:var(--surface);
+  border-bottom:1px solid var(--border);position:sticky;top:0;z-index:200;height:56px;box-shadow:var(--shadow);}
+.logo{font-size:17px;font-weight:700;color:var(--text);letter-spacing:-.3px;margin-right:32px;white-space:nowrap;}
+.logo em{color:var(--blue);font-style:normal;}
+.nav-tabs{display:flex;gap:2px;height:100%;align-items:center;}
+.nav-tab{display:flex;align-items:center;gap:6px;padding:6px 18px;border-radius:20px;
+  cursor:pointer;color:var(--sub);font-size:13px;font-weight:500;transition:.15s;border:none;background:none;}
+.nav-tab:hover{background:var(--surface2);color:var(--text);}
+.nav-tab.active{background:var(--blue-lt);color:var(--blue);font-weight:600;}
+.spacer{flex:1;}
+.demo-badge{background:var(--yel-lt);color:var(--yellow);border:1px solid #f9d84a;border-radius:6px;
+  padding:3px 10px;font-size:11px;font-weight:600;}
+
+/* ── FILTER BAR ── */
+.filterbar{display:flex;align-items:center;gap:8px;padding:10px 24px;
+  background:var(--surface);border-bottom:1px solid var(--border);flex-wrap:wrap;}
+.filter-group{display:flex;align-items:center;gap:6px;}
+.filter-label{color:var(--sub);font-size:12px;font-weight:500;white-space:nowrap;}
+select{background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:8px;
+  padding:6px 28px 6px 10px;font-size:12px;outline:none;cursor:pointer;
+  appearance:none;-webkit-appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 8px center;
+  transition:.15s;font-family:var(--font);}
+select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,115,232,.15);}
+.btn-reset{background:none;border:1px solid var(--border);border-radius:8px;padding:6px 14px;
+  color:var(--sub);font-size:12px;cursor:pointer;font-family:var(--font);transition:.15s;}
+.btn-reset:hover{border-color:var(--blue);color:var(--blue);}
+.granularity-toggle{display:flex;background:var(--surface2);border-radius:8px;padding:3px;gap:2px;}
+.gran-btn{padding:4px 12px;border-radius:6px;border:none;background:none;
+  color:var(--sub);font-size:12px;font-weight:500;cursor:pointer;font-family:var(--font);transition:.15s;}
+.gran-btn.active{background:var(--surface);color:var(--blue);font-weight:600;box-shadow:var(--shadow);}
+
+/* ── MAIN ── */
+.main{padding:20px 24px;max-width:1600px;margin:0 auto;}
+.section-header{display:flex;align-items:center;gap:10px;margin-bottom:16px;margin-top:8px;}
+.section-title{font-size:15px;font-weight:700;color:var(--text);}
+.section-sub{font-size:12px;color:var(--sub);}
+.tab-view{display:none;}.tab-view.active{display:block;}
+
+/* ── KPI CARDS ── */
+.kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px;}
+.kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:16px 18px;box-shadow:var(--shadow);transition:.2s;}
+.kpi-card:hover{box-shadow:var(--shadow2);}
+.kpi-icon{font-size:18px;margin-bottom:6px;}
+.kpi-label{color:var(--sub);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+.kpi-val{font-size:24px;font-weight:700;color:var(--text);line-height:1.2;}
+.kpi-change{font-size:12px;margin-top:6px;display:inline-flex;align-items:center;gap:3px;
+  padding:2px 8px;border-radius:20px;font-weight:600;}
+.kpi-change.up{background:var(--green-lt);color:var(--green);}
+.kpi-change.down{background:var(--red-lt);color:var(--red);}
+.kpi-change.neutral{background:var(--surface2);color:var(--sub);}
+
+/* ── GRID ── */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px;}
+.grid-60-40{display:grid;grid-template-columns:58% 42%;gap:16px;margin-bottom:16px;}
+.grid-40-60{display:grid;grid-template-columns:42% 58%;gap:16px;margin-bottom:16px;}
+
+/* ── CARD ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:18px 20px;box-shadow:var(--shadow);}
+.card-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px;display:flex;
+  justify-content:space-between;align-items:flex-start;}
+.card-sub{font-size:11px;color:var(--sub);margin-bottom:14px;}
+.chart-wrap{position:relative;}
+
+/* ── TABLE ── */
+.tbl-wrap{overflow-x:auto;max-height:400px;overflow-y:auto;}
+.tbl-wrap::-webkit-scrollbar{width:4px;height:4px;}
+.tbl-wrap::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+table.data{width:100%;border-collapse:collapse;font-size:12px;}
+table.data thead th{position:sticky;top:0;background:var(--surface2);color:var(--sub);
+  text-align:left;padding:8px 12px;font-weight:600;white-space:nowrap;cursor:pointer;
+  border-bottom:1px solid var(--border);user-select:none;z-index:1;}
+table.data thead th:hover{color:var(--blue);}
+table.data thead th.sorted{color:var(--blue);}
+table.data tbody tr{border-bottom:1px solid var(--border);transition:.1s;}
+table.data tbody tr:hover{background:var(--surface2);}
+table.data td{padding:9px 12px;vertical-align:middle;}
+td.rank{color:var(--sub);width:32px;font-size:11px;text-align:center;}
+td.name{font-weight:600;color:var(--text);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+td.num{text-align:right;font-variant-numeric:tabular-nums;color:var(--text);}
+td.rpm-val{text-align:right;font-weight:700;color:var(--blue);}
+.badge-up{display:inline-flex;align-items:center;gap:2px;background:var(--green-lt);
+  color:var(--green);padding:2px 7px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap;}
+.badge-dn{display:inline-flex;align-items:center;gap:2px;background:var(--red-lt);
+  color:var(--red);padding:2px 7px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap;}
+.badge-na{color:var(--sub);font-size:11px;}
+tfoot tr{background:var(--surface2)!important;}
+tfoot td{font-weight:700;color:var(--text);border-top:2px solid var(--border);padding:9px 12px;}
+.pagination{display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-top:10px;
+  color:var(--sub);font-size:12px;}
+.pg-btn{background:var(--surface);border:1px solid var(--border);color:var(--text);
+  border-radius:6px;padding:4px 12px;cursor:pointer;font-family:var(--font);transition:.15s;}
+.pg-btn:hover:not(:disabled){border-color:var(--blue);color:var(--blue);}
+.pg-btn:disabled{opacity:.35;cursor:default;}
+
+/* ── SCATTER (improved) ── */
+.scatter-legend{display:flex;gap:20px;margin-bottom:12px;}
+.sleg{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--sub);}
+.sleg-dot{width:10px;height:10px;border-radius:50%;display:inline-block;border:2px solid;}
+
+/* ── DIVIDER ── */
+.divider{border:none;border-top:1px solid var(--border);margin:20px 0;}
+
+/* ── FOOTER NOTE ── */
+.footer-note{background:var(--yel-lt);border:1px solid #f9d84a;border-radius:var(--radius);
+  padding:14px 18px;margin-top:24px;font-size:11px;color:#854d0e;line-height:1.8;}
+.footer-note strong{color:#78350f;}
+code{background:rgba(0,0,0,.06);padding:1px 5px;border-radius:4px;font-size:11px;}
+
+/* ── PROGRESS BAR ── */
+.progress-wrap{display:flex;align-items:center;gap:8px;font-size:11px;}
+.progress-bar{flex:1;height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;}
+.progress-fill{height:100%;border-radius:3px;transition:.3s;}
+
+@media(max-width:1100px){
+  .kpi-row{grid-template-columns:repeat(3,1fr);}
+  .grid-60-40,.grid-40-60,.grid-2{grid-template-columns:1fr;}
+}
+@media(max-width:700px){
+  .kpi-row{grid-template-columns:1fr 1fr;}
+  .main{padding:12px;}
+}
+</style>
+</head>
+<body>
+
+<!-- TOP NAV -->
+<nav class="topnav">
+  <div class="logo">HG<em>Media</em> · RedOne</div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="switchTab('rpm',this)">📊 RPM</button>
+    <button class="nav-tab" onclick="switchTab('view',this)">👁 View</button>
+    <button class="nav-tab" onclick="switchTab('revenue',this)">💰 Doanh thu</button>
+  </div>
+  <div class="spacer"></div>
+  <span class="demo-badge">⚠ Dữ liệu Demo</span>
+</nav>
+
+<!-- FILTER BAR -->
+<div class="filterbar">
+  <div class="filter-group">
+    <span class="filter-label">Từ</span>
+    <select id="dateFrom" onchange="applyFilters()"></select>
+    <span class="filter-label">đến</span>
+    <select id="dateTo" onchange="applyFilters()"></select>
+  </div>
+  <div class="granularity-toggle">
+    <button class="gran-btn active" id="gran-day"   onclick="setGran('day')">Ngày</button>
+    <button class="gran-btn"        id="gran-week"  onclick="setGran('week')">Tuần</button>
+    <button class="gran-btn"        id="gran-month" onclick="setGran('month')">Tháng</button>
+  </div>
+  <div class="filter-group">
+    <span class="filter-label">Dự án</span>
+    <select id="filterProject" onchange="applyFilters()"><option value="">Tất cả</option></select>
+  </div>
+  <div class="filter-group">
+    <span class="filter-label">Network</span>
+    <select id="filterNetwork" onchange="applyFilters()"><option value="">Tất cả</option></select>
+  </div>
+  <div class="filter-group">
+    <span class="filter-label">Bộ phận</span>
+    <select id="filterTeam" onchange="applyFilters()"><option value="">Tất cả</option></select>
+  </div>
+  <div class="filter-group">
+    <span class="filter-label">Kênh</span>
+    <select id="filterChannel" onchange="applyFilters()"><option value="">Tất cả</option></select>
+  </div>
+  <button class="btn-reset" onclick="resetFilters()">↺ Đặt lại</button>
+</div>
+
+<!-- ══ TAB RPM ══ -->
+<div id="tab-rpm" class="tab-view active main">
+  <div id="kpi-row" class="kpi-row"></div>
+
+  <!-- Section: theo Dự án -->
+  <div class="section-header">
+    <span class="section-title">📊 RPM theo Dự án</span>
+    <span class="section-sub" id="period-label-proj"></span>
+  </div>
+
+  <div class="grid-60-40">
+    <!-- Line chart -->
+    <div class="card">
+      <div class="card-title">Biến động RPM theo thời gian</div>
+      <div class="card-sub">Theo dự án – chọn granularity ở bộ lọc</div>
+      <div class="chart-wrap" style="height:240px"><canvas id="c-rpm-proj-line"></canvas></div>
+    </div>
+    <!-- Summary table -->
+    <div class="card">
+      <div class="card-title">Tổng quan RPM & mức thay đổi</div>
+      <div class="card-sub">So sánh với kỳ trước cùng độ dài</div>
+      <div class="tbl-wrap">
+        <table class="data" id="t-proj">
+          <thead><tr>
+            <th class="rank">#</th>
+            <th onclick="srt('proj','name')">Dự án</th>
+            <th onclick="srt('proj','revenue')" class="sorted">Doanh thu ↓</th>
+            <th>% Δ</th>
+            <th onclick="srt('proj','views')">View</th>
+            <th>% Δ</th>
+            <th onclick="srt('proj','rpm')">RPM</th>
+            <th>% Δ</th>
+          </tr></thead>
+          <tbody id="tb-proj"></tbody>
+          <tfoot><tr id="tf-proj"></tr></tfoot>
+        </table>
+      </div>
+      <div class="pagination">
+        <span id="pi-proj"></span>
+        <button class="pg-btn" id="pp-proj" onclick="pg('proj',-1)">‹</button>
+        <button class="pg-btn" id="pn-proj" onclick="pg('proj',1)">›</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scatter: RPM vs Revenue – project -->
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title">Phân bổ RPM và Doanh thu theo Dự án
+      <span style="font-size:11px;color:var(--sub);font-weight:400;">Kích thước bong bóng = số View | ● hiện tại  ○ kỳ trước</span>
+    </div>
+    <div class="card-sub">Trục X: Doanh thu ($) · Trục Y: RPM ($) · Hover để xem chi tiết</div>
+    <div class="chart-wrap" style="height:300px"><canvas id="c-rpm-proj-scatter"></canvas></div>
+  </div>
+
+  <hr class="divider"/>
+
+  <!-- Section: theo Network -->
+  <div class="section-header">
+    <span class="section-title">🌐 RPM theo Network</span>
+    <span class="section-sub" id="period-label-net"></span>
+  </div>
+
+  <div class="grid-60-40">
+    <div class="card">
+      <div class="card-title">Biến động RPM theo thời gian</div>
+      <div class="card-sub">Top 8 network theo doanh thu</div>
+      <div class="chart-wrap" style="height:240px"><canvas id="c-rpm-net-line"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Tổng quan Network</div>
+      <div class="card-sub">Xếp hạng theo doanh thu</div>
+      <div class="tbl-wrap">
+        <table class="data">
+          <thead><tr>
+            <th class="rank">#</th>
+            <th onclick="srt('net','name')">Network</th>
+            <th onclick="srt('net','revenue')" class="sorted">Doanh thu ↓</th>
+            <th>% Δ</th>
+            <th onclick="srt('net','views')">View</th>
+            <th>% Δ</th>
+            <th onclick="srt('net','rpm')">RPM</th>
+            <th>% Δ</th>
+          </tr></thead>
+          <tbody id="tb-net"></tbody>
+          <tfoot><tr id="tf-net"></tr></tfoot>
+        </table>
+      </div>
+      <div class="pagination">
+        <span id="pi-net"></span>
+        <button class="pg-btn" id="pp-net" onclick="pg('net',-1)">‹</button>
+        <button class="pg-btn" id="pn-net" onclick="pg('net',1)">›</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title">Phân bổ RPM và Doanh thu theo Network
+      <span style="font-size:11px;color:var(--sub);font-weight:400;">Top 20 network · Kích thước = số View</span>
+    </div>
+    <div class="card-sub">Trục X: Doanh thu ($) · Trục Y: RPM ($) · Hover để xem chi tiết</div>
+    <div class="chart-wrap" style="height:300px"><canvas id="c-rpm-net-scatter"></canvas></div>
+  </div>
+
+  <hr class="divider"/>
+
+  <!-- Section: theo Kênh -->
+  <div class="section-header">
+    <span class="section-title">📺 RPM theo Kênh</span>
+  </div>
+
+  <div class="grid-40-60">
+    <div class="card">
+      <div class="card-title">Top 10 kênh RPM cao nhất</div>
+      <div class="card-sub">Kỳ được chọn</div>
+      <div class="chart-wrap" style="height:300px"><canvas id="c-rpm-ch-bar"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Bảng RPM theo kênh</div>
+      <div class="card-sub">Click tiêu đề để sắp xếp</div>
+      <div class="tbl-wrap">
+        <table class="data">
+          <thead><tr>
+            <th class="rank">#</th>
+            <th onclick="srt('ch','name')">Kênh</th>
+            <th onclick="srt('ch','project')">Dự án</th>
+            <th onclick="srt('ch','revenue')" class="sorted">Doanh thu ↓</th>
+            <th onclick="srt('ch','views')">View</th>
+            <th onclick="srt('ch','rpm')">RPM</th>
+            <th>% Δ</th>
+          </tr></thead>
+          <tbody id="tb-ch"></tbody>
+          <tfoot><tr id="tf-ch"></tr></tfoot>
+        </table>
+      </div>
+      <div class="pagination">
+        <span id="pi-ch"></span>
+        <button class="pg-btn" id="pp-ch" onclick="pg('ch',-1)">‹</button>
+        <button class="pg-btn" id="pn-ch" onclick="pg('ch',1)">›</button>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider"/>
+  <!-- Section: Bộ phận – RPM tab -->
+  <div class="section-header">
+    <span class="section-title">🏢 RPM theo Bộ phận</span>
+    <span class="section-sub">So sánh hiệu suất giữa các team</span>
+  </div>
+  <div class="grid-60-40">
+    <div class="card">
+      <div class="card-title">Biến động RPM theo thời gian</div>
+      <div class="card-sub">Theo bộ phận</div>
+      <div class="chart-wrap" style="height:240px"><canvas id="c-rpm-team-line"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Tổng quan RPM các Bộ phận</div>
+      <div class="card-sub">Kỳ hiện tại vs kỳ trước</div>
+      <div class="tbl-wrap">
+        <table class="data">
+          <thead><tr>
+            <th class="rank">#</th>
+            <th onclick="srt('team','name')">Bộ phận</th>
+            <th onclick="srt('team','revenue')" class="sorted">Doanh thu ↓</th>
+            <th>% Δ</th>
+            <th onclick="srt('team','views')">View</th>
+            <th>% Δ</th>
+            <th onclick="srt('team','rpm')">RPM</th>
+            <th>% Δ</th>
+          </tr></thead>
+          <tbody id="tb-team"></tbody>
+          <tfoot><tr id="tf-team"></tr></tfoot>
+        </table>
+      </div>
+      <div class="pagination">
+        <span id="pi-team"></span>
+        <button class="pg-btn" id="pp-team" onclick="pg('team',-1)">‹</button>
+        <button class="pg-btn" id="pn-team" onclick="pg('team',1)">›</button>
+      </div>
+    </div>
+  </div>
+  <div class="grid-2" style="margin-bottom:16px">
+    <div class="card">
+      <div class="card-title">So sánh Doanh thu & View theo Bộ phận</div>
+      <div class="card-sub">Kỳ hiện tại – kích thước = số kênh</div>
+      <div class="chart-wrap" style="height:260px"><canvas id="c-rpm-team-scatter"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Tỷ lệ kênh đã Monetize theo Bộ phận</div>
+      <div class="card-sub">Từ dữ liệu CSV thực tế</div>
+      <div class="chart-wrap" style="height:260px"><canvas id="c-rpm-team-monetize"></canvas></div>
+    </div>
+  </div>
+
+  <div class="footer-note">
+    <strong>⚠ Ghi chú cho Dev – Trường dữ liệu cần thay thế bằng dữ liệu thật:</strong><br>
+    1. <strong>Dữ liệu lịch sử theo ngày (FAKE):</strong> Cần API/DB: <code>{ channel_id, date, views, revenue_ana, revenue_us }</code><br>
+    2. <strong>Metrics giả lập:</strong> <code>project_daily[proj][yyyy-mm-dd].views</code> (giả: n_kênh × 200–3000/ngày), <code>.revenue</code> (RPM base × seasonal × DOW multiplier), <code>.rpm</code> (tính từ 2 trên)<br>
+    3. <strong>DT US giả:</strong> = 68% DT Ana (thực tế cần tách từ YouTube Analytics API)<br>
+    4. <strong>RPM benchmark (USD/1000 views, US-heavy):</strong> Sóng âm/Relax: $5–9 · Classical/Jazz: $4–8 · Lofi/Deep House: $3.5–6.5 · Giáng Sinh Q4: $7–14
+  </div>
+</div>
+
+<!-- ══ TAB VIEW ══ -->
+<div id="tab-view" class="tab-view main">
+
+  <!-- KPI row -->
+  <div id="kpi-row-view" class="kpi-row" style="grid-template-columns:repeat(5,1fr)"></div>
+
+  <!-- ROW 1: Grouped bar by channel (ảnh mẫu) + Stacked area by project -->
+  <div class="section-header" style="margin-top:4px">
+    <span class="section-title">📈 Biến động lượt xem theo kênh</span>
+    <span class="section-sub">Grouped bar – chọn granularity ở bộ lọc trên</span>
+    <div style="margin-left:auto;display:flex;gap:6px" id="view-topN-toggle">
+      <button class="gran-btn active" onclick="setViewTop(5,this)">Top 5</button>
+      <button class="gran-btn" onclick="setViewTop(10,this)">Top 10</button>
+      <button class="gran-btn" onclick="setViewTop(20,this)">Top 20</button>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:16px">
+    <div class="chart-wrap" style="height:300px"><canvas id="c-view-ch-bar"></canvas></div>
+  </div>
+
+  <!-- ROW 2: Stacked area (project) + Donut -->
+  <div class="grid-60-40">
+    <div class="card">
+      <div class="card-title">Tổng View theo Dự án</div>
+      <div class="card-sub">Stacked area – thấy tỷ trọng từng dự án theo thời gian</div>
+      <div class="chart-wrap" style="height:260px"><canvas id="c-view-stacked"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Tỷ trọng View theo Dự án</div>
+      <div class="card-sub">Kỳ được chọn</div>
+      <div class="chart-wrap" style="height:260px"><canvas id="c-view-pie"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ROW 3: View vs Watch Time scatter + View by country bar -->
+  <div class="grid-2" style="margin-bottom:16px">
+    <div class="card">
+      <div class="card-title">View vs Watch Time trung bình</div>
+      <div class="card-sub">Phát hiện kênh view cao nhưng retention thấp · kích thước = doanh thu</div>
+      <div class="chart-wrap" style="height:260px"><canvas id="c-view-wt-scatter"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Top 10 kênh theo View 48h</div>
+      <div class="card-sub">Chỉ số tức thời – kỳ được chọn</div>
+      <div class="chart-wrap" style="height:260px"><canvas id="c-view-48h"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ROW 4: Ranking table with sparkline -->
+  <div class="section-header">
+    <span class="section-title">📋 Bảng xếp hạng kênh</span>
+    <span class="section-sub">Click tiêu đề để sắp xếp · chỉ top 50 kênh có dữ liệu ngày</span>
+    <div style="margin-left:auto;display:flex;gap:6px" id="view-metric-toggle">
+      <button class="gran-btn active" onclick="setViewMetric('views',this)">View</button>
+      <button class="gran-btn" onclick="setViewMetric('watch_time',this)">Watch Time</button>
+      <button class="gran-btn" onclick="setViewMetric('revenue',this)">Doanh thu</button>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:16px">
+    <div class="tbl-wrap">
+      <table class="data">
+        <thead><tr>
+          <th class="rank">#</th>
+          <th onclick="srtV('name')">Kênh</th>
+          <th onclick="srtV('project')">Dự án</th>
+          <th onclick="srtV('views')" class="sorted" id="vh-views">View ↓</th>
+          <th onclick="srtV('watch_time')">Watch Time TB</th>
+          <th onclick="srtV('revenue')">Doanh thu</th>
+          <th onclick="srtV('rpm')">RPM</th>
+          <th>% Δ View</th>
+          <th style="width:120px">Trend (ngày)</th>
+        </tr></thead>
+        <tbody id="tb-view-rank"></tbody>
+        <tfoot><tr id="tf-view-rank"></tr></tfoot>
+      </table>
+    </div>
+    <div class="pagination">
+      <span id="pi-view-rank"></span>
+      <button class="pg-btn" id="pp-vr" onclick="pgV(-1)">‹</button>
+      <button class="pg-btn" id="pn-vr" onclick="pgV(1)">›</button>
+    </div>
+  </div>
+
+  <!-- ROW 5: View growth heatmap by weekday + Project comparison bar -->
+  <div class="grid-2" style="margin-bottom:16px">
+    <div class="card">
+      <div class="card-title">View theo ngày trong tuần</div>
+      <div class="card-sub">TB view theo thứ – phát hiện pattern tuần</div>
+      <div class="chart-wrap" style="height:220px"><canvas id="c-view-dow"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">So sánh View kỳ hiện tại vs kỳ trước</div>
+      <div class="card-sub">Theo dự án – % thay đổi</div>
+      <div class="chart-wrap" style="height:220px"><canvas id="c-view-compare"></canvas></div>
+    </div>
+  </div>
+
+  <hr class="divider"/>
+  <!-- Section: Bộ phận – View tab -->
+  <div class="section-header">
+    <span class="section-title">🏢 View theo Bộ phận</span>
+    <span class="section-sub">Hiệu suất view từng team</span>
+  </div>
+  <div class="grid-60-40" style="margin-bottom:16px">
+    <div class="card">
+      <div class="card-title">Biến động View theo thời gian</div>
+      <div class="card-sub">Theo bộ phận</div>
+      <div class="chart-wrap" style="height:260px"><canvas id="c-view-team-line"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Tỷ trọng View theo Bộ phận</div>
+      <div class="card-sub">Kỳ được chọn</div>
+      <div class="chart-wrap" style="height:260px"><canvas id="c-view-team-pie"></canvas></div>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title">So sánh View kỳ hiện tại vs kỳ trước theo Bộ phận</div>
+    <div class="card-sub">Bộ phận nào đang tăng/giảm view</div>
+    <div class="chart-wrap" style="height:220px"><canvas id="c-view-team-compare"></canvas></div>
+  </div>
+
+</div>
+
+<!-- ══ TAB REVENUE ══ -->
+<div id="tab-revenue" class="tab-view main">
+
+  <!-- KPI row -->
+  <div id="kpi-row-rev" class="kpi-row" style="grid-template-columns:repeat(5,1fr)"></div>
+
+  <!-- ROW 1: Revenue line + Donut -->
+  <div class="section-header" style="margin-top:4px">
+    <span class="section-title">💰 Biến động Doanh thu theo thời gian</span>
+    <span class="section-sub">Theo dự án – granularity ở bộ lọc trên</span>
+  </div>
+  <div class="grid-60-40">
+    <div class="card">
+      <div class="card-title">Doanh thu Ana (toàn cầu) theo Dự án</div>
+      <div class="card-sub">Stacked area – thấy xu hướng và tỷ trọng từng dự án</div>
+      <div class="chart-wrap" style="height:260px"><canvas id="c-rev-stacked"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Tỷ trọng Doanh thu</div>
+      <div class="card-sub">Phân bổ Ana vs US theo dự án</div>
+      <div class="chart-wrap" style="height:260px"><canvas id="c-rev-pie"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ROW 2: DT Ana vs US grouped bar + Revenue by network -->
+  <div class="grid-2" style="margin-bottom:16px">
+    <div class="card">
+      <div class="card-title">DT Ana vs DT US theo Dự án</div>
+      <div class="card-sub">DT US ≈ 68% DT Ana – thị trường Mỹ chiếm ưu thế</div>
+      <div class="chart-wrap" style="height:260px"><canvas id="c-rev-bar"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Top 10 Network theo Doanh thu</div>
+      <div class="card-sub">Kỳ được chọn – so sánh kỳ trước</div>
+      <div class="chart-wrap" style="height:260px"><canvas id="c-rev-net-bar"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ROW 3: Revenue scatter (RPM vs Revenue) + DoW revenue -->
+  <div class="grid-2" style="margin-bottom:16px">
+    <div class="card">
+      <div class="card-title">RPM vs Doanh thu theo Dự án</div>
+      <div class="card-sub">Góc phần tư: cao–cao = dự án ưu tiên · kích thước = số View</div>
+      <div class="chart-wrap" style="height:260px"><canvas id="c-rev-rpm-scatter"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Doanh thu theo ngày trong tuần</div>
+      <div class="card-sub">TB doanh thu theo thứ – pattern chi tiêu quảng cáo</div>
+      <div class="chart-wrap" style="height:260px"><canvas id="c-rev-dow"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ROW 4: Cumulative revenue line + Month-over-month waterfall -->
+  <div class="grid-60-40" style="margin-bottom:16px">
+    <div class="card">
+      <div class="card-title">Doanh thu tích lũy theo thời gian</div>
+      <div class="card-sub">Tổng cộng tích lũy – tracking tiến độ mục tiêu</div>
+      <div class="chart-wrap" style="height:240px"><canvas id="c-rev-cumul"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Tăng trưởng Doanh thu theo tháng</div>
+      <div class="card-sub">% thay đổi so tháng trước</div>
+      <div class="chart-wrap" style="height:240px"><canvas id="c-rev-growth"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ROW 5: Revenue ranking table -->
+  <div class="section-header">
+    <span class="section-title">📋 Bảng xếp hạng Doanh thu theo kênh</span>
+    <span class="section-sub">Top 50 kênh có dữ liệu chi tiết</span>
+  </div>
+  <div class="card" style="margin-bottom:16px">
+    <div class="tbl-wrap">
+      <table class="data">
+        <thead><tr>
+          <th class="rank">#</th>
+          <th onclick="srtR('name')">Kênh</th>
+          <th onclick="srtR('project')">Dự án</th>
+          <th onclick="srtR('revenue')" class="sorted">DT Ana ↓</th>
+          <th onclick="srtR('revenue_us')">DT US</th>
+          <th onclick="srtR('rpm')">RPM</th>
+          <th onclick="srtR('views')">View</th>
+          <th>% Δ DT</th>
+          <th style="width:120px">Trend DT</th>
+        </tr></thead>
+        <tbody id="tb-rev-rank"></tbody>
+        <tfoot><tr id="tf-rev-rank"></tr></tfoot>
+      </table>
+    </div>
+    <div class="pagination">
+      <span id="pi-rev-rank"></span>
+      <button class="pg-btn" id="pp-rr" onclick="pgR(-1)">‹</button>
+      <button class="pg-btn" id="pn-rr" onclick="pgR(1)">›</button>
+    </div>
+  </div>
+
+  <hr class="divider"/>
+  <!-- Section: Bộ phận – Revenue tab -->
+  <div class="section-header">
+    <span class="section-title">🏢 Doanh thu theo Bộ phận</span>
+    <span class="section-sub">Đóng góp doanh thu của từng team</span>
+  </div>
+  <div class="grid-60-40" style="margin-bottom:16px">
+    <div class="card">
+      <div class="card-title">Biến động Doanh thu theo thời gian</div>
+      <div class="card-sub">Stacked – theo bộ phận</div>
+      <div class="chart-wrap" style="height:260px"><canvas id="c-rev-team-stacked"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Tỷ trọng Doanh thu theo Bộ phận</div>
+      <div class="card-sub">Kỳ được chọn</div>
+      <div class="chart-wrap" style="height:260px"><canvas id="c-rev-team-pie"></canvas></div>
+    </div>
+  </div>
+  <div class="grid-2" style="margin-bottom:16px">
+    <div class="card">
+      <div class="card-title">Doanh thu & RPM theo Bộ phận</div>
+      <div class="card-sub">Kỳ hiện tại vs kỳ trước – kích thước = số kênh</div>
+      <div class="chart-wrap" style="height:240px"><canvas id="c-rev-team-scatter"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">DT / Kênh theo Bộ phận</div>
+      <div class="card-sub">Hiệu suất doanh thu trung bình mỗi kênh</div>
+      <div class="chart-wrap" style="height:240px"><canvas id="c-rev-team-perkh"></canvas></div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+// GLOBALS
+// ═══════════════════════════════════════════════
+const PALETTE = ['#1a73e8','#e52592','#12b5cb','#f29900','#7b2d8b','#1e8e3e','#d93025','#f8a600',
+                 '#00897b','#5c6bc0','#e65100','#558b2f','#6d4c41','#0288d1','#ad1457','#00838f'];
+
+let RAW = null;
+let ST = {
+  gran: 'day',
+  fromD: '', toD: '',
+  project: '', network: '', channel: '', team: '',
+  sort: { proj:{c:'revenue',d:-1}, net:{c:'revenue',d:-1}, ch:{c:'revenue',d:-1}, team:{c:'revenue',d:-1} },
+  page: { proj:0, net:0, ch:0 },
+  PS: 8
+};
+let CHARTS = {};
+
+fetch('dashboard_data.json').then(r=>r.json()).then(d=>{ RAW=d; init(); });
+
+// ═══════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════
+function init(){
+  // Default range: last 90 days
+  const days = RAW.days;
+  ST.toD   = days[days.length-1];
+  const idx = Math.max(0, days.length-91);
+  ST.fromD = days[idx];
+
+  buildSelects();
+  render();
+}
+
+function buildSelects(){
+  // Date selects: use months for compactness, but also allow picking specific days
+  const months = RAW.months;
+  const fFrom = sel('dateFrom'), fTo = sel('dateTo');
+
+  // Build month boundaries: first day of each month as "from", last day as "to"
+  const monthStarts = {}, monthEnds = {};
+  RAW.days.forEach(d=>{
+    const ym = d.slice(0,7);
+    if(!monthStarts[ym]) monthStarts[ym] = d;
+    monthEnds[ym] = d;
+  });
+
+  months.forEach(ym=>{
+    const lbl = fmtM(ym);
+    fFrom.innerHTML += `<option value="${monthStarts[ym]}" ${monthStarts[ym]===ST.fromD?'selected':''}>${lbl}</option>`;
+    fTo.innerHTML   += `<option value="${monthEnds[ym]}"   ${monthEnds[ym]===ST.toD?'selected':''}>${lbl}</option>`;
+  });
+
+  // Also add "specific week" options as extra
+  const fp = sel('filterProject');
+  RAW.projects.filter(p=>p!=='Không rõ').sort().forEach(p=>{
+    fp.innerHTML += `<option value="${p}">${p}</option>`;
+  });
+
+  const ft = sel('filterTeam');
+  (RAW.teams||[]).sort().forEach(t=> ft.innerHTML+=`<option value="${t}">${t}</option>`);
+
+  const fn = sel('filterNetwork');
+  const topNets = Object.entries(RAW.network_monthly)
+    .filter(([k])=>k!=='Không có Network')
+    .map(([k,v])=>({k,t:sumObj(v,'revenue')}))
+    .sort((a,b)=>b.t-a.t).slice(0,30).map(x=>x.k);
+  topNets.forEach(n=> fn.innerHTML+=`<option value="${n}">${n}</option>`);
+
+  const fc = sel('filterChannel');
+  [...RAW.channels].sort((a,b)=>a.name.localeCompare(b.name))
+    .forEach(ch=> fc.innerHTML+=`<option value="${ch.name}">${ch.name}</option>`);
+}
+
+// ═══════════════════════════════════════════════
+// FILTERS
+// ═══════════════════════════════════════════════
+function applyFilters(){
+  ST.fromD    = sel('dateFrom').value;
+  ST.toD      = sel('dateTo').value;
+  ST.project  = sel('filterProject').value;
+  ST.network  = sel('filterNetwork').value;
+  ST.channel  = sel('filterChannel').value;
+  ST.team     = sel('filterTeam').value;
+  ST.page     = {proj:0,net:0,ch:0};
+  render();
+}
+function resetFilters(){
+  const days = RAW.days;
+  ST.fromD = days[Math.max(0,days.length-91)];
+  ST.toD   = days[days.length-1];
+  sel('dateFrom').value = ST.fromD;
+  sel('dateTo').value   = ST.toD;
+  ['filterProject','filterNetwork','filterChannel','filterTeam'].forEach(id=>{ sel(id).value=''; });
+  ST.project=ST.network=ST.channel=ST.team='';
+  ST.page={proj:0,net:0,ch:0};
+  render();
+}
+function setGran(g){
+  ST.gran = g;
+  ['day','week','month'].forEach(x=> sel('gran-'+x).classList.toggle('active', x===g));
+  render();
+}
+
+// ═══════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════
+const sel   = id => document.getElementById(id);
+const fmtM  = ym => `Th${parseInt(ym.slice(5))}/${ym.slice(0,4)}`;
+const fmtD  = d  => { const [y,m,dd]=d.split('-'); return `${dd}/${m}/${y}`; };
+const fmtK  = n  => n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?(n/1e3).toFixed(1)+'K':n.toFixed(0);
+const fmtN  = (n,dec=0)=> n==null?'–':n.toLocaleString('vi-VN',{minimumFractionDigits:dec,maximumFractionDigits:dec});
+const pct   = (c,p)=> (!p||p===0)?null:(c-p)/p*100;
+
+function badge(v){
+  if(v===null||isNaN(v)) return '<span class="badge-na">–</span>';
+  const cls = v>=0?'badge-up':'badge-dn';
+  const arr = v>=0?'▲':'▼';
+  return `<span class="${cls}">${arr} ${Math.abs(v).toFixed(1)}%</span>`;
+}
+
+function sumObj(obj, key){
+  return Object.values(obj).reduce((s,v)=>s+(v[key]||0),0);
+}
+
+// ── Date range helpers ──
+function inRange(d){ return d>=ST.fromD && d<=ST.toD; }
+
+function prevRange(){
+  const days = RAW.days;
+  const fi = days.indexOf(ST.fromD), ti = days.indexOf(ST.toD);
+  const span = ti - fi;
+  const pf = Math.max(0, fi-span-1), pt = Math.max(0, fi-1);
+  return { from: days[pf]||'', to: days[pt]||'' };
+}
+
+// ── Aggregate daily data for a key-set ──
+function aggDaily(dailyData, keys, from, to){
+  // returns { key: {views, revenue} }
+  const res = {};
+  keys.forEach(k=>{
+    let v=0,r=0;
+    const d = dailyData[k];
+    if(!d) return;
+    Object.keys(d).filter(day=>day>=from&&day<=to).forEach(day=>{
+      v+=d[day].views||0; r+=d[day].revenue||0;
+    });
+    res[k] = {views:v, revenue:r, rpm: v>0?r/v*1000:0};
+  });
+  return res;
+}
+
+// ── Build granular labels + series ──
+function buildTimeSeries(dailyData, keys, from, to, gran){
+  // Build time buckets
+  const allDays = RAW.days.filter(d=>d>=from&&d<=to);
+  let buckets = [];
+
+  if(gran==='day'){
+    buckets = allDays.map(d=>({label:fmtD(d), days:[d]}));
+    // If too many days, thin to max 120 points
+    if(buckets.length > 90){
+      const step = Math.ceil(buckets.length/90);
+      buckets = buckets.filter((_,i)=>i%step===0 || i===buckets.length-1);
+    }
+  } else if(gran==='week'){
+    const weekMap = {};
+    allDays.forEach(d=>{
+      const dt = new Date(d);
+      const day = dt.getDay();
+      const diff = dt.getDate() - day + (day===0?-6:1);
+      const mon = new Date(dt); mon.setDate(diff);
+      const key = mon.toISOString().slice(0,10);
+      if(!weekMap[key]) weekMap[key]=[];
+      weekMap[key].push(d);
+    });
+    buckets = Object.entries(weekMap).sort((a,b)=>a[0].localeCompare(b[0]))
+      .map(([k,days])=>({label:'W'+k.slice(5,7)+'/'+k.slice(2,4), days}));
+  } else {
+    const monthMap = {};
+    allDays.forEach(d=>{ const ym=d.slice(0,7); if(!monthMap[ym])monthMap[ym]=[]; monthMap[ym].push(d); });
+    buckets = Object.entries(monthMap).sort((a,b)=>a[0].localeCompare(b[0]))
+      .map(([k,days])=>({label:fmtM(k), days}));
+  }
+
+  const labels = buckets.map(b=>b.label);
+  const datasets = keys.slice(0,10).map((k,i)=>{
+    const d = dailyData[k];
+    const data = buckets.map(b=>{
+      let v=0,r=0;
+      b.days.forEach(day=>{ if(d&&d[day]){v+=d[day].views||0; r+=d[day].revenue||0;} });
+      return v>0 ? +(r/v*1000).toFixed(3) : null;
+    });
+    return { label:k, data, borderColor:PALETTE[i%PALETTE.length],
+             backgroundColor:'transparent', borderWidth:2, tension:.3,
+             pointRadius:buckets.length>60?0:2, pointHoverRadius:5, spanGaps:true };
+  });
+
+  return {labels, datasets};
+}
+
+// ═══════════════════════════════════════════════
+// FILTERED LISTS
+// ═══════════════════════════════════════════════
+function filteredChannels(){
+  return RAW.channels.filter(ch=>{
+    if(ST.project && ch.project!==ST.project) return false;
+    if(ST.network && ch.network!==ST.network) return false;
+    if(ST.channel && ch.name!==ST.channel)    return false;
+    return true;
+  });
+}
+function filteredProjects(){
+  const chs = filteredChannels();
+  return [...new Set(chs.map(c=>c.project))].filter(p=>p!=='Không rõ');
+}
+function filteredNetworks(){
+  const chs = filteredChannels();
+  return [...new Set(chs.map(c=>c.network))].filter(n=>n&&n!=='Không có Network');
+}
+
+// ═══════════════════════════════════════════════
+// BUILD TABLE DATA
+// ═══════════════════════════════════════════════
+function buildTableData(type){
+  const pr = prevRange();
+  const keys  = type==='proj' ? filteredProjects() : filteredNetworks();
+  const daily = type==='proj' ? RAW.project_daily  : RAW.network_daily;
+
+  const cur  = aggDaily(daily, keys, ST.fromD, ST.toD);
+  const prev = pr.from&&pr.to ? aggDaily(daily, keys, pr.from, pr.to) : {};
+
+  return keys.map(k=>({
+    name:     k,
+    views:    cur[k]?.views||0,
+    revenue:  cur[k]?.revenue||0,
+    rpm:      cur[k]?.rpm||0,
+    prevViews:   prev[k]?.views||0,
+    prevRevenue: prev[k]?.revenue||0,
+    prevRpm:     prev[k]?.rpm||0,
+    revChange:   pct(cur[k]?.revenue||0, prev[k]?.revenue),
+    viewChange:  pct(cur[k]?.views||0,   prev[k]?.views),
+    rpmChange:   pct(cur[k]?.rpm||0,     prev[k]?.rpm),
+  }));
+}
+
+function buildChannelData(){
+  const pr = prevRange();
+  const months = RAW.months;
+  const chs = filteredChannels();
+  const inM  = m => { const start=m+'-01', end=m+'-31'; return start>=ST.fromD&&end<=ST.toD||start<=ST.toD&&end>=ST.fromD; };
+
+  return chs.map(ch=>{
+    let v=0,r=0,pv=0,pr2=0;
+    months.forEach(ym=>{
+      const dayStart=ym+'-01';
+      if(dayStart>=ST.fromD && dayStart<=ST.toD){
+        v+=RAW.channel_monthly[ch.name]?.[ym]?.views||0;
+        r+=RAW.channel_monthly[ch.name]?.[ym]?.revenue||0;
+      }
+      if(pr.from&&dayStart>=pr.from&&dayStart<=pr.to){
+        pv+=RAW.channel_monthly[ch.name]?.[ym]?.views||0;
+        pr2+=RAW.channel_monthly[ch.name]?.[ym]?.revenue||0;
+      }
+    });
+    const rpm=v>0?r/v*1000:0, prpm=pv>0?pr2/pv*1000:0;
+    return {name:ch.name, project:ch.project, network:ch.network,
+            views:v, revenue:r, rpm, rpmChange:pct(rpm,prpm)};
+  });
+}
+
+// ═══════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════
+function render(){
+  const from=ST.fromD, to=ST.toD;
+  renderKPI();
+  renderRPMTab();
+  renderViewTab();
+  renderRevTab();
+}
+
+// ── KPI ──
+function renderKPI(){
+  const chs = filteredChannels();
+  const pr = prevRange();
+  let tv=0,tr=0,ptv=0,ptr=0;
+  const projs = filteredProjects();
+  const cur  = aggDaily(RAW.project_daily, projs, ST.fromD, ST.toD);
+  const prev = pr.from&&pr.to ? aggDaily(RAW.project_daily, projs, pr.from, pr.to) : {};
+  Object.values(cur).forEach(d=>{ tv+=d.views; tr+=d.revenue; });
+  Object.values(prev).forEach(d=>{ ptv+=d.views; ptr+=d.revenue; });
+
+  const rpm=tv>0?tr/tv*1000:0, prpm=ptv>0?ptr/ptv*1000:0;
+  const topProj = Object.entries(cur).sort((a,b)=>b[1].rpm-a[1].rpm)[0];
+
+  const days_count = RAW.days.filter(d=>d>=ST.fromD&&d<=ST.toD).length;
+
+  const cards = [
+    {icon:'👁',label:'Tổng View',val:fmtK(tv),ch:pct(tv,ptv)},
+    {icon:'💰',label:'Doanh thu',val:'$'+fmtK(tr),ch:pct(tr,ptr)},
+    {icon:'📊',label:'RPM trung bình',val:'$'+rpm.toFixed(2),ch:pct(rpm,prpm)},
+    {icon:'🏆',label:'Dự án RPM cao',val:topProj?topProj[0]:'–',sub:topProj?'$'+topProj[1].rpm.toFixed(2):null,ch:null},
+    {icon:'📅',label:'Số ngày phân tích',val:days_count,ch:null,sub:`${fmtD(ST.fromD)} → ${fmtD(ST.toD)}`},
+  ];
+
+  sel('kpi-row').innerHTML = cards.map(c=>`
+    <div class="kpi-card">
+      <div class="kpi-icon">${c.icon}</div>
+      <div class="kpi-label">${c.label}</div>
+      <div class="kpi-val">${c.val}</div>
+      ${c.sub ? `<div style="font-size:12px;color:var(--sub);margin-top:4px">${c.sub}</div>` : ''}
+      ${c.ch!==null&&c.ch!==undefined ? `<span class="kpi-change ${c.ch>=0?'up':'down'}">${c.ch>=0?'▲':'▼'} ${Math.abs(c.ch).toFixed(1)}%</span>` : ''}
+    </div>`).join('');
+}
+
+// ── RPM TAB ──
+function renderRPMTab(){
+  const projs = filteredProjects();
+  const nets  = filteredNetworks();
+  const pr = prevRange();
+
+  // Line – project
+  const {labels:pl, datasets:pd} = buildTimeSeries(RAW.project_daily, projs, ST.fromD, ST.toD, ST.gran);
+  mkLine('c-rpm-proj-line', pl, pd, 'RPM ($)', v=>'$'+v.toFixed(2));
+
+  // Line – network (top 8)
+  const netCur = aggDaily(RAW.network_daily, nets, ST.fromD, ST.toD);
+  const top8nets = Object.entries(netCur).sort((a,b)=>b[1].revenue-a[1].revenue).slice(0,8).map(x=>x[0]);
+  const {labels:nl, datasets:nd} = buildTimeSeries(RAW.network_daily, top8nets, ST.fromD, ST.toD, ST.gran);
+  mkLine('c-rpm-net-line', nl, nd, 'RPM ($)', v=>'$'+v.toFixed(2));
+
+  // Tables
+  const projData = buildTableData('proj').sort((a,b)=>ST.sort.proj.d*(b[ST.sort.proj.c]||0)-(a[ST.sort.proj.c]||0)*ST.sort.proj.d);
+  const netData  = buildTableData('net').sort((a,b)=>ST.sort.net.d*(b[ST.sort.net.c]||0)-(a[ST.sort.net.c]||0)*ST.sort.net.d);
+
+  renderTable('proj', projData);
+  renderTable('net',  netData);
+
+  const chData = buildChannelData().sort((a,b)=>ST.sort.ch.d*(b[ST.sort.ch.c]||0)-(a[ST.sort.ch.c]||0)*ST.sort.ch.d);
+  renderChTable(chData);
+
+  // Channel bar
+  const top10ch = [...chData].sort((a,b)=>b.rpm-a.rpm).slice(0,10);
+  mkBarH('c-rpm-ch-bar', top10ch.map(d=>d.name.length>22?d.name.slice(0,20)+'…':d.name),
+    top10ch.map(d=>+d.rpm.toFixed(2)), top10ch.map((_,i)=>PALETTE[i%PALETTE.length]), 'RPM ($)', v=>'$'+v.toFixed(1));
+
+  // Team charts – RPM tab
+  renderTeamRPMLine(ST.fromD, ST.toD);
+  const teamData = buildTeamData(ST.fromD, ST.toD).sort((a,b)=>ST.sort.team.d*(b[ST.sort.team.c]||0)-(a[ST.sort.team.c]||0)*ST.sort.team.d);
+  renderTable('team', teamData);
+  renderTeamRPMScatter(ST.fromD, ST.toD);
+  renderTeamMonetize();
+
+  // Scatter – project
+  const projCur  = aggDaily(RAW.project_daily, projs, ST.fromD, ST.toD);
+  const projPrev = pr.from&&pr.to ? aggDaily(RAW.project_daily, projs, pr.from, pr.to) : {};
+  mkScatter('c-rpm-proj-scatter', projs, projCur, projPrev, '#1a73e8', 'Dự án');
+
+  // Scatter – network (top 20)
+  const top20nets = Object.entries(netCur).sort((a,b)=>b[1].revenue-a[1].revenue).slice(0,20).map(x=>x[0]);
+  const netPrev   = pr.from&&pr.to ? aggDaily(RAW.network_daily, top20nets, pr.from, pr.to) : {};
+  mkScatter('c-rpm-net-scatter', top20nets, netCur, netPrev, '#e52592', 'Network');
+}
+
+// ── Scatter builder ──
+function mkScatter(id, keys, cur, prev, baseColor, typeLabel){
+  const ctx = sel(id).getContext('2d');
+  if(CHARTS[id]) CHARTS[id].destroy();
+
+  const maxRev = Math.max(...keys.map(k=>(cur[k]?.revenue||0)), 1);
+  const maxV   = Math.max(...keys.map(k=>(cur[k]?.views||0)), 1);
+
+  // Fixed bubble size scale: max radius = 20, min = 6
+  const rScale = k => {
+    const v = cur[k]?.views||0;
+    return Math.max(6, Math.min(22, 6 + (v/maxV)*16));
+  };
+  const rScaleP = k => {
+    const v = prev[k]?.views||0;
+    return Math.max(4, Math.min(16, 4 + (v/maxV)*12));
+  };
+
+  const curData  = keys.map((k,i)=>({x:+(cur[k]?.revenue||0).toFixed(2),  y:+(cur[k]?.rpm||0).toFixed(3),  r:rScale(k),  _label:k, _idx:i}));
+  const prevData = keys.map((k,i)=>({x:+(prev[k]?.revenue||0).toFixed(2), y:+(prev[k]?.rpm||0).toFixed(3), r:rScaleP(k), _label:k, _idx:i}));
+
+  CHARTS[id] = new Chart(ctx, {
+    type:'bubble',
+    data:{
+      datasets:[
+        { label:`${typeLabel} (hiện tại)`,
+          data: curData,
+          backgroundColor: curData.map((_,i)=>PALETTE[i%PALETTE.length]+'cc'),
+          borderColor:     curData.map((_,i)=>PALETTE[i%PALETTE.length]),
+          borderWidth:2 },
+        { label:`${typeLabel} (kỳ trước)`,
+          data: prevData,
+          backgroundColor: prevData.map((_,i)=>PALETTE[i%PALETTE.length]+'44'),
+          borderColor:     prevData.map((_,i)=>PALETTE[i%PALETTE.length]),
+          borderWidth:1.5,
+          borderDash:[4,3] }
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:'#fff',
+          borderColor:'#e3e6ef',
+          borderWidth:1,
+          titleColor:'#1a1d2e',
+          bodyColor:'#6b7280',
+          titleFont:{size:13,weight:'bold'},
+          bodyFont:{size:12},
+          padding:10,
+          callbacks:{
+            title: ctx => ctx[0].dataset.data[ctx[0].dataIndex]._label||'',
+            label: ctx => {
+              const d = ctx.raw;
+              const period = ctx.datasetIndex===0?'Hiện tại':'Kỳ trước';
+              return [`${period}`, `  RPM: $${d.y.toFixed(2)}`, `  Doanh thu: $${fmtK(d.x)}`, `  View: (kích thước bong bóng)`];
+            }
+          }
+        }
+      },
+      scales:{
+        x:{ grid:{color:'#e3e6ef'},
+            ticks:{color:'#6b7280',font:{size:11},callback:v=>'$'+fmtK(v)},
+            title:{display:true,text:'Doanh thu ($)',color:'#6b7280',font:{size:11}} },
+        y:{ grid:{color:'#e3e6ef'},
+            ticks:{color:'#6b7280',font:{size:11},callback:v=>'$'+v.toFixed(1)},
+            title:{display:true,text:'RPM ($)',color:'#6b7280',font:{size:11}} }
+      }
+    }
+  });
+}
+
+// ── Line chart builder ──
+function mkLine(id, labels, datasets, yLabel, tickCb){
+  const ctx = sel(id).getContext('2d');
+  if(CHARTS[id]) CHARTS[id].destroy();
+  CHARTS[id] = new Chart(ctx,{
+    type:'line', data:{labels, datasets},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{position:'top',align:'start',labels:{color:'#6b7280',boxWidth:10,font:{size:11},padding:12}},
+        tooltip:{backgroundColor:'#fff',borderColor:'#e3e6ef',borderWidth:1,
+          titleColor:'#1a1d2e',bodyColor:'#6b7280',titleFont:{size:12,weight:'bold'},
+          bodyFont:{size:11},padding:10,
+          callbacks:{label:c=>` ${c.dataset.label}: $${c.parsed.y?.toFixed(2)||'–'}`}}
+      },
+      scales:{
+        x:{grid:{color:'#f1f3f8'},ticks:{color:'#6b7280',font:{size:10},maxRotation:30}},
+        y:{grid:{color:'#f1f3f8'},ticks:{color:'#6b7280',font:{size:10},callback:tickCb||((v)=>v)},
+           title:{display:true,text:yLabel,color:'#9aa0ab',font:{size:10}}}
+      }
+    }
+  });
+}
+
+// ── Horizontal bar ──
+function mkBarH(id, labels, data, colors, xLabel, tickCb){
+  const ctx = sel(id).getContext('2d');
+  if(CHARTS[id]) CHARTS[id].destroy();
+  CHARTS[id] = new Chart(ctx,{
+    type:'bar', data:{labels,
+      datasets:[{label:xLabel,data,
+        backgroundColor:colors.map(c=>c+'cc'), borderColor:colors, borderWidth:1, borderRadius:4}]},
+    options:{
+      indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},
+        tooltip:{backgroundColor:'#fff',borderColor:'#e3e6ef',borderWidth:1,
+          titleColor:'#1a1d2e',bodyColor:'#6b7280',padding:10,
+          callbacks:{label:c=>` RPM: $${c.parsed.x.toFixed(2)}`}}},
+      scales:{
+        x:{grid:{color:'#f1f3f8'},ticks:{color:'#6b7280',callback:tickCb||((v)=>v)}},
+        y:{grid:{display:false},ticks:{color:'#1a1d2e',font:{size:11}}}
+      }
+    }
+  });
+}
+
+// ── Table render ──
+function renderTable(type, data){
+  const ps=ST.PS, pg=ST.page[type]||0;
+  const slice = data.slice(pg*ps,(pg+1)*ps);
+  sel('tb-'+type).innerHTML = slice.map((d,i)=>`<tr>
+    <td class="rank">${pg*ps+i+1}</td>
+    <td class="name" title="${d.name}">${d.name.length>24?d.name.slice(0,22)+'…':d.name}</td>
+    <td class="num">$${fmtN(d.revenue,2)}</td>
+    <td class="num">${badge(d.revChange)}</td>
+    <td class="num">${fmtK(d.views)}</td>
+    <td class="num">${badge(d.viewChange)}</td>
+    <td class="rpm-val">$${d.rpm.toFixed(2)}</td>
+    <td class="num">${badge(d.rpmChange)}</td>
+  </tr>`).join('');
+
+  const tv=data.reduce((s,d)=>s+d.views,0), tr=data.reduce((s,d)=>s+d.revenue,0);
+  sel('tf-'+type).innerHTML=`<td></td><td>Tổng cộng</td>
+    <td class="num">$${fmtN(tr,2)}</td><td></td>
+    <td class="num">${fmtK(tv)}</td><td></td>
+    <td class="rpm-val">$${(tv>0?tr/tv*1000:0).toFixed(2)}</td><td></td>`;
+
+  const total=data.length, pages=Math.ceil(total/ps);
+  sel('pi-'+type).textContent=`${pg*ps+1}–${Math.min((pg+1)*ps,total)} / ${total}`;
+  sel('pp-'+type).disabled=pg===0;
+  sel('pn-'+type).disabled=pg>=pages-1;
+}
+
+function renderChTable(data){
+  const ps=ST.PS, pg=ST.page.ch||0;
+  const slice = data.slice(pg*ps,(pg+1)*ps);
+  sel('tb-ch').innerHTML = slice.map((d,i)=>`<tr>
+    <td class="rank">${pg*ps+i+1}</td>
+    <td class="name" title="${d.name}">${d.name.length>20?d.name.slice(0,18)+'…':d.name}</td>
+    <td class="num">${d.project}</td>
+    <td class="num">$${fmtN(d.revenue,2)}</td>
+    <td class="num">${fmtK(d.views)}</td>
+    <td class="rpm-val">$${d.rpm.toFixed(2)}</td>
+    <td class="num">${badge(d.rpmChange)}</td>
+  </tr>`).join('');
+
+  const tv=data.reduce((s,d)=>s+d.views,0), tr=data.reduce((s,d)=>s+d.revenue,0);
+  sel('tf-ch').innerHTML=`<td></td><td>Tổng cộng</td><td></td>
+    <td class="num">$${fmtN(tr,2)}</td>
+    <td class="num">${fmtK(tv)}</td>
+    <td class="rpm-val">$${(tv>0?tr/tv*1000:0).toFixed(2)}</td><td></td>`;
+
+  const total=data.length, pages=Math.ceil(total/ps);
+  sel('pi-ch').textContent=`${pg*ps+1}–${Math.min((pg+1)*ps,total)} / ${total}`;
+  sel('pp-ch').disabled=pg===0;
+  sel('pn-ch').disabled=pg>=pages-1;
+}
+
+function srt(type, col){
+  if(ST.sort[type].c===col) ST.sort[type].d*=-1;
+  else { ST.sort[type].c=col; ST.sort[type].d=-1; }
+  render();
+}
+function pg(type, delta){
+  ST.page[type]=Math.max(0,(ST.page[type]||0)+delta);
+  render();
+}
+
+// ── VIEW TAB STATE ──
+const VST = { topN: 5, metric: 'views', sortCol: 'views', sortDir: -1, page: 0, PS: 10 };
+
+function setViewTop(n, el){
+  VST.topN = n;
+  sel('view-topN-toggle').querySelectorAll('.gran-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  renderViewChBar();
+}
+function setViewMetric(m, el){
+  VST.metric = m;
+  sel('view-metric-toggle').querySelectorAll('.gran-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  renderViewRankTable();
+}
+function srtV(col){
+  if(VST.sortCol===col) VST.sortDir*=-1; else { VST.sortCol=col; VST.sortDir=-1; }
+  renderViewRankTable();
+}
+function pgV(d){ VST.page=Math.max(0,VST.page+d); renderViewRankTable(); }
+
+// ── helper: build buckets from date range ──
+function mkBuckets(from, to, gran){
+  const allDays = RAW.days.filter(d=>d>=from&&d<=to);
+  let buckets = [];
+  if(gran==='day'){
+    buckets = allDays.map(d=>({label:fmtD(d), days:[d]}));
+    if(buckets.length>90){ const s=Math.ceil(buckets.length/90); buckets=buckets.filter((_,i)=>i%s===0||i===buckets.length-1); }
+  } else if(gran==='week'){
+    const wm={};
+    allDays.forEach(d=>{ const dt=new Date(d), diff=dt.getDate()-dt.getDay()+(dt.getDay()===0?-6:1), m=new Date(dt); m.setDate(diff); const k=m.toISOString().slice(0,10); if(!wm[k])wm[k]=[]; wm[k].push(d); });
+    buckets=Object.entries(wm).sort((a,b)=>a[0].localeCompare(b[0])).map(([k,days])=>({label:'W'+k.slice(5,7)+'/'+k.slice(2,4),days}));
+  } else {
+    const mm={};
+    allDays.forEach(d=>{ const ym=d.slice(0,7); if(!mm[ym])mm[ym]=[]; mm[ym].push(d); });
+    buckets=Object.entries(mm).sort((a,b)=>a[0].localeCompare(b[0])).map(([k,days])=>({label:fmtM(k),days}));
+  }
+  return buckets;
+}
+
+// ── VIEW TAB main render ──
+function renderViewTab(){
+  const projs = filteredProjects();
+  const chs   = filteredChannels();
+  const pr    = prevRange();
+
+  // Aggregate
+  const cur  = aggDaily(RAW.project_daily, projs, ST.fromD, ST.toD);
+  const prev = pr.from&&pr.to ? aggDaily(RAW.project_daily, projs, pr.from, pr.to) : {};
+  let tv=0, ptv=0, avWT=0, wtCount=0;
+  Object.values(cur).forEach(d=>{ tv+=d.views; });
+  Object.values(prev).forEach(d=>{ ptv+=d.views; });
+
+  // avg watch time from top channels
+  const topChs = RAW.top_channels || [];
+  topChs.slice(0,20).forEach(tc=>{
+    const d = RAW.channel_daily?.[tc.name];
+    if(!d) return;
+    let wt=0, cnt=0;
+    RAW.days.filter(day=>day>=ST.fromD&&day<=ST.toD).forEach(day=>{ if(d[day]?.watch_time_avg){ wt+=d[day].watch_time_avg; cnt++; } });
+    if(cnt){ avWT+=wt/cnt; wtCount++; }
+  });
+  const avgWatchTime = wtCount>0 ? Math.round(avWT/wtCount) : 0;
+  const avgViewPerDay = tv / Math.max(1, RAW.days.filter(d=>d>=ST.fromD&&d<=ST.toD).length);
+
+  // KPI
+  const vch=pct(tv,ptv);
+  sel('kpi-row-view').innerHTML=`
+    <div class="kpi-card"><div class="kpi-icon">👁</div><div class="kpi-label">Tổng View</div>
+      <div class="kpi-val">${fmtK(tv)}</div>
+      <span class="kpi-change ${vch>=0?'up':'down'}">${vch>=0?'▲':'▼'} ${Math.abs(vch||0).toFixed(1)}% so kỳ trước</span></div>
+    <div class="kpi-card"><div class="kpi-icon">📅</div><div class="kpi-label">View / Ngày TB</div>
+      <div class="kpi-val">${fmtK(avgViewPerDay)}</div>
+      <div style="font-size:11px;color:var(--sub);margin-top:4px">${RAW.days.filter(d=>d>=ST.fromD&&d<=ST.toD).length} ngày</div></div>
+    <div class="kpi-card"><div class="kpi-icon">⏱</div><div class="kpi-label">Watch Time TB</div>
+      <div class="kpi-val">${Math.floor(avgWatchTime/60)}m${avgWatchTime%60}s</div>
+      <div style="font-size:11px;color:var(--sub);margin-top:4px">trung bình / video</div></div>
+    <div class="kpi-card"><div class="kpi-icon">📺</div><div class="kpi-label">Số kênh</div>
+      <div class="kpi-val">${chs.length}</div>
+      <div style="font-size:11px;color:var(--sub);margin-top:4px">${projs.length} dự án</div></div>
+    <div class="kpi-card"><div class="kpi-icon">🏆</div><div class="kpi-label">Dự án nhiều view nhất</div>
+      <div class="kpi-val" style="font-size:16px">${Object.entries(cur).sort((a,b)=>b[1].views-a[1].views)[0]?.[0]||'–'}</div>
+      <div style="font-size:11px;color:var(--sub);margin-top:4px">${fmtK(Object.entries(cur).sort((a,b)=>b[1].views-a[1].views)[0]?.[1].views||0)} views</div></div>`;
+
+  renderViewChBar();
+  renderViewStackedArea(projs, cur);
+  renderViewPie(projs, cur);
+  renderViewWTScatter();
+  renderView48h();
+  renderViewRankTable();
+  renderViewDOW();
+  renderViewCompare(projs, cur, prev);
+
+  // Team charts – View tab
+  renderTeamViewLine(ST.fromD, ST.toD);
+  renderTeamViewPie(ST.fromD, ST.toD);
+  renderTeamViewCompare(ST.fromD, ST.toD);
+}
+
+// ── Grouped bar: top N channels by view ──
+function renderViewChBar(){
+  const topN = VST.topN;
+  const topChs = (RAW.top_channels||[]).slice(0, Math.max(topN, 20));
+  const buckets = mkBuckets(ST.fromD, ST.toD, ST.gran);
+
+  // Sort channels by total view in range, pick topN
+  const chTotals = topChs.map(tc=>{
+    const d = RAW.channel_daily?.[tc.name];
+    if(!d) return {name:tc.name, total:0};
+    const total = RAW.days.filter(day=>day>=ST.fromD&&day<=ST.toD).reduce((s,day)=>s+(d[day]?.views||0),0);
+    return {name:tc.name, total};
+  }).sort((a,b)=>b.total-a.total).slice(0,topN);
+
+  const datasets = chTotals.map((tc,i)=>{
+    const d = RAW.channel_daily?.[tc.name];
+    const data = buckets.map(b=>{ let v=0; b.days.forEach(day=>{ if(d&&d[day]) v+=d[day].views||0; }); return v||0; });
+    return {
+      label: tc.name,
+      data,
+      backgroundColor: PALETTE[i%PALETTE.length]+'cc',
+      borderColor:     PALETTE[i%PALETTE.length],
+      borderWidth: 1,
+      borderRadius: 2,
+    };
+  });
+
+  const ctx = sel('c-view-ch-bar').getContext('2d');
+  if(CHARTS['c-view-ch-bar']) CHARTS['c-view-ch-bar'].destroy();
+  CHARTS['c-view-ch-bar'] = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: buckets.map(b=>b.label), datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode:'index', intersect:false },
+      plugins:{
+        legend:{ position:'top', align:'start', labels:{ color:'#6b7280', boxWidth:10, font:{size:11}, padding:10 } },
+        tooltip:{ backgroundColor:'#fff', borderColor:'#e3e6ef', borderWidth:1,
+          titleColor:'#1a1d2e', bodyColor:'#6b7280', titleFont:{size:12,weight:'bold'}, padding:10,
+          callbacks:{ label: c=>` ${c.dataset.label}: ${fmtK(c.parsed.y)}` } }
+      },
+      scales:{
+        x:{ grid:{display:false}, ticks:{color:'#6b7280',font:{size:10},maxRotation:30,
+            maxTicksLimit: buckets.length>30?20:buckets.length } },
+        y:{ grid:{color:'#f1f3f8'}, ticks:{color:'#6b7280',font:{size:10},callback:v=>fmtK(v)},
+            title:{display:true,text:'Lượt xem',color:'#9aa0ab',font:{size:10}} }
+      }
+    }
+  });
+}
+
+// ── Stacked area: view by project ──
+function renderViewStackedArea(projs, cur){
+  const buckets = mkBuckets(ST.fromD, ST.toD, ST.gran);
+  const topProjs = [...projs].sort((a,b)=>(cur[b]?.views||0)-(cur[a]?.views||0)).slice(0,8);
+
+  const datasets = topProjs.map((p,i)=>{
+    const d = RAW.project_daily[p];
+    const data = buckets.map(b=>{ let v=0; b.days.forEach(day=>{ if(d&&d[day]) v+=d[day].views||0; }); return v||0; });
+    return { label:p, data,
+      backgroundColor: PALETTE[i%PALETTE.length]+'88',
+      borderColor:     PALETTE[i%PALETTE.length],
+      borderWidth:1.5, fill:true, tension:.3,
+      pointRadius:0, pointHoverRadius:4 };
+  });
+
+  const ctx = sel('c-view-stacked').getContext('2d');
+  if(CHARTS['c-view-stacked']) CHARTS['c-view-stacked'].destroy();
+  CHARTS['c-view-stacked'] = new Chart(ctx, {
+    type:'line', data:{ labels:buckets.map(b=>b.label), datasets },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{ position:'top', align:'start', labels:{color:'#6b7280',boxWidth:10,font:{size:10},padding:8} },
+        tooltip:{ backgroundColor:'#fff', borderColor:'#e3e6ef', borderWidth:1,
+          titleColor:'#1a1d2e', bodyColor:'#6b7280', padding:10,
+          callbacks:{ label:c=>` ${c.dataset.label}: ${fmtK(c.parsed.y)}` } }
+      },
+      scales:{
+        x:{ grid:{display:false}, stacked:true, ticks:{color:'#6b7280',font:{size:10},maxTicksLimit:12,maxRotation:30} },
+        y:{ grid:{color:'#f1f3f8'}, stacked:true, ticks:{color:'#6b7280',font:{size:10},callback:v=>fmtK(v)} }
+      }
+    }
+  });
+}
+
+// ── Donut: view share ──
+function renderViewPie(projs, cur){
+  const pieData = projs.map(p=>({name:p,v:cur[p]?.views||0})).filter(d=>d.v>0).sort((a,b)=>b.v-a.v);
+  const total   = pieData.reduce((s,d)=>s+d.v,0);
+  const ctx = sel('c-view-pie').getContext('2d');
+  if(CHARTS['c-view-pie']) CHARTS['c-view-pie'].destroy();
+  CHARTS['c-view-pie'] = new Chart(ctx,{type:'doughnut',
+    data:{ labels:pieData.map(d=>d.name),
+           datasets:[{data:pieData.map(d=>d.v), backgroundColor:pieData.map((_,i)=>PALETTE[i%PALETTE.length]+'cc'),
+                      borderColor:'#fff', borderWidth:3, hoverOffset:6}] },
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{position:'right',labels:{color:'#6b7280',font:{size:11},boxWidth:10,padding:8}},
+        tooltip:{ backgroundColor:'#fff', borderColor:'#e3e6ef', borderWidth:1,
+          titleColor:'#1a1d2e', bodyColor:'#6b7280', padding:10,
+          callbacks:{label:c=>` ${c.label}: ${fmtK(c.parsed)} (${(c.parsed/total*100).toFixed(1)}%)`} } } }
+  });
+}
+
+// ── Scatter: View vs Watch Time ──
+function renderViewWTScatter(){
+  const topChs = RAW.top_channels || [];
+  const points = topChs.slice(0,30).map((tc,i)=>{
+    const d = RAW.channel_daily?.[tc.name];
+    if(!d) return null;
+    let tv=0, wt=0, tr=0, cnt=0;
+    RAW.days.filter(day=>day>=ST.fromD&&day<=ST.toD).forEach(day=>{
+      if(d[day]){ tv+=d[day].views||0; tr+=d[day].revenue||0; if(d[day].watch_time_avg){wt+=d[day].watch_time_avg;cnt++;} }
+    });
+    const avgWT = cnt>0?wt/cnt:0;
+    return { x:tv, y:Math.round(avgWT), r:Math.max(5,Math.min(18, 5+(tr/500))), label:tc.name, project:tc.project, color:PALETTE[i%PALETTE.length] };
+  }).filter(Boolean);
+
+  const ctx = sel('c-view-wt-scatter').getContext('2d');
+  if(CHARTS['c-view-wt-scatter']) CHARTS['c-view-wt-scatter'].destroy();
+  CHARTS['c-view-wt-scatter'] = new Chart(ctx, {
+    type:'bubble',
+    data:{ datasets:[{
+      label:'Kênh', data:points,
+      backgroundColor: points.map(p=>p.color+'bb'),
+      borderColor:     points.map(p=>p.color),
+      borderWidth:1.5
+    }]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{ backgroundColor:'#fff', borderColor:'#e3e6ef', borderWidth:1,
+          titleColor:'#1a1d2e', bodyColor:'#6b7280', titleFont:{size:13,weight:'bold'}, padding:10,
+          callbacks:{
+            title: c => c[0].raw.label,
+            label: c => [`  Dự án: ${c.raw.project}`, `  Views: ${fmtK(c.raw.x)}`, `  Watch Time TB: ${Math.floor(c.raw.y/60)}m${c.raw.y%60}s`]
+          }}
+      },
+      scales:{
+        x:{ grid:{color:'#f1f3f8'}, ticks:{color:'#6b7280',font:{size:10},callback:v=>fmtK(v)}, title:{display:true,text:'Tổng View',color:'#9aa0ab',font:{size:10}} },
+        y:{ grid:{color:'#f1f3f8'}, ticks:{color:'#6b7280',font:{size:10},callback:v=>{ const m=Math.floor(v/60); return m+'m'+(v%60)+'s'; }}, title:{display:true,text:'Watch Time TB (giây)',color:'#9aa0ab',font:{size:10}} }
+      }
+    }
+  });
+}
+
+// ── Bar: Top 10 kênh View 48h ──
+function renderView48h(){
+  const topChs = RAW.top_channels || [];
+  // Use last 2 days in range as proxy for 48h
+  const last2 = RAW.days.filter(d=>d>=ST.fromD&&d<=ST.toD).slice(-2);
+  const data = topChs.slice(0,20).map(tc=>{
+    const d = RAW.channel_daily?.[tc.name];
+    if(!d) return {name:tc.name, v:0};
+    const v = last2.reduce((s,day)=>s+(d[day]?.views||0),0);
+    return {name:tc.name, v, project:tc.project};
+  }).sort((a,b)=>b.v-a.v).slice(0,10);
+
+  const ctx = sel('c-view-48h').getContext('2d');
+  if(CHARTS['c-view-48h']) CHARTS['c-view-48h'].destroy();
+  CHARTS['c-view-48h'] = new Chart(ctx,{
+    type:'bar',
+    data:{ labels: data.map(d=>d.name.length>18?d.name.slice(0,16)+'…':d.name),
+           datasets:[{label:'View 48h', data:data.map(d=>d.v),
+             backgroundColor: data.map((_,i)=>PALETTE[i%PALETTE.length]+'cc'),
+             borderColor:     data.map((_,i)=>PALETTE[i%PALETTE.length]),
+             borderWidth:1, borderRadius:4 }] },
+    options:{
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false},
+        tooltip:{ backgroundColor:'#fff', borderColor:'#e3e6ef', borderWidth:1,
+          titleColor:'#1a1d2e', bodyColor:'#6b7280', padding:10,
+          callbacks:{label:c=>` View 48h: ${fmtK(c.parsed.x)}`} } },
+      scales:{
+        x:{ grid:{color:'#f1f3f8'}, ticks:{color:'#6b7280',font:{size:10},callback:v=>fmtK(v)} },
+        y:{ grid:{display:false}, ticks:{color:'#1a1d2e',font:{size:11}} }
+      }
+    }
+  });
+}
+
+// ── Ranking table with sparkline ──
+function renderViewRankTable(){
+  const topChs = RAW.top_channels || [];
+  const pr     = prevRange();
+  const inRange = (day) => day>=ST.fromD && day<=ST.toD;
+  const inPrev  = (day) => pr.from && day>=pr.from && day<=pr.to;
+
+  // Build table data
+  let rows = topChs.map(tc=>{
+    const d = RAW.channel_daily?.[tc.name];
+    if(!d) return null;
+    let tv=0, tr=0, wt=0, wtCnt=0, ptv=0;
+    Object.keys(d).forEach(day=>{
+      if(inRange(day)){ tv+=d[day].views||0; tr+=d[day].revenue||0; if(d[day].watch_time_avg){wt+=d[day].watch_time_avg;wtCnt++;} }
+      if(inPrev(day))  ptv+=d[day].views||0;
+    });
+    const rpm = tv>0?tr/tv*1000:0;
+    const avgWT = wtCnt>0?Math.round(wt/wtCnt):0;
+    // Sparkline: last 14 days in range
+    const last14 = RAW.days.filter(day=>inRange(day)).slice(-14);
+    const spark   = last14.map(day=>d[day]?.views||0);
+    return { name:tc.name, project:tc.project, views:tv, revenue:tr, rpm, watch_time:avgWT,
+             viewChange:pct(tv,ptv), spark };
+  }).filter(Boolean);
+
+  // Apply metric filter for sort if changed
+  const sortKey = VST.sortCol;
+  rows.sort((a,b)=> VST.sortDir * ((b[sortKey]||0)-(a[sortKey]||0)));
+
+  const ps=VST.PS, pg=VST.page;
+  const slice = rows.slice(pg*ps,(pg+1)*ps);
+
+  sel('tb-view-rank').innerHTML = slice.map((r,i)=>{
+    const sparkSvg = mkSparkSVG(r.spark, 110, 28);
+    const wt = r.watch_time>0 ? `${Math.floor(r.watch_time/60)}m${r.watch_time%60}s` : '–';
+    return `<tr>
+      <td class="rank">${pg*ps+i+1}</td>
+      <td class="name" title="${r.name}">${r.name.length>22?r.name.slice(0,20)+'…':r.name}</td>
+      <td class="num">${r.project}</td>
+      <td class="num">${fmtK(r.views)}</td>
+      <td class="num">${wt}</td>
+      <td class="num">$${fmtN(r.revenue,2)}</td>
+      <td class="rpm-val">$${r.rpm.toFixed(2)}</td>
+      <td class="num">${badge(r.viewChange)}</td>
+      <td class="num">${sparkSvg}</td>
+    </tr>`;
+  }).join('');
+
+  const tv=rows.reduce((s,r)=>s+r.views,0), tr=rows.reduce((s,r)=>s+r.revenue,0);
+  sel('tf-view-rank').innerHTML=`<td></td><td>Tổng (top50)</td><td></td>
+    <td class="num">${fmtK(tv)}</td><td></td>
+    <td class="num">$${fmtN(tr,2)}</td>
+    <td class="rpm-val">$${(tv>0?tr/tv*1000:0).toFixed(2)}</td><td></td><td></td>`;
+
+  const total=rows.length, pages=Math.ceil(total/ps);
+  sel('pi-view-rank').textContent=`${pg*ps+1}–${Math.min((pg+1)*ps,total)} / ${total}`;
+  sel('pp-vr').disabled=pg===0;
+  sel('pn-vr').disabled=pg>=pages-1;
+}
+
+// ── Mini sparkline SVG ──
+function mkSparkSVG(data, w, h){
+  if(!data||!data.length) return '';
+  const max=Math.max(...data,1), min=0;
+  const pts = data.map((v,i)=>{
+    const x = (i/(data.length-1||1))*w;
+    const y = h - ((v-min)/(max-min||1))*h;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+  const last = data[data.length-1], first=data[0];
+  const col  = last>=first ? '#1e8e3e' : '#d93025';
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="overflow:visible">
+    <polyline points="${pts}" fill="none" stroke="${col}" stroke-width="1.5" stroke-linejoin="round"/>
+    <circle cx="${(data.length-1)/(data.length-1||1)*w}" cy="${h-((last-min)/(max-min||1))*h}" r="2.5" fill="${col}"/>
+  </svg>`;
+}
+
+// ── View by day of week ──
+function renderViewDOW(){
+  const projs = filteredProjects();
+  const DOW_LABELS = ['Thứ 2','Thứ 3','Thứ 4','Thứ 5','Thứ 6','Thứ 7','Chủ nhật'];
+  const buckets = [0,1,2,3,4,5,6].map(()=>({v:0,cnt:0}));
+
+  projs.forEach(p=>{
+    const d = RAW.project_daily[p];
+    if(!d) return;
+    RAW.days.filter(day=>day>=ST.fromD&&day<=ST.toD).forEach(day=>{
+      const dow = (new Date(day).getDay()+6)%7; // Mon=0
+      buckets[dow].v   += d[day]?.views||0;
+      buckets[dow].cnt += 1;
+    });
+  });
+
+  const avgs = buckets.map(b=>b.cnt>0?Math.round(b.v/b.cnt):0);
+  const maxA  = Math.max(...avgs,1);
+
+  const ctx = sel('c-view-dow').getContext('2d');
+  if(CHARTS['c-view-dow']) CHARTS['c-view-dow'].destroy();
+  CHARTS['c-view-dow'] = new Chart(ctx,{
+    type:'bar',
+    data:{ labels:DOW_LABELS,
+      datasets:[{ label:'View TB', data:avgs,
+        backgroundColor: avgs.map(v=>{ const t=v/maxA; return `rgba(26,115,232,${0.3+t*0.7})`; }),
+        borderColor:'#1a73e8', borderWidth:1, borderRadius:6 }] },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false},
+        tooltip:{ backgroundColor:'#fff', borderColor:'#e3e6ef', borderWidth:1,
+          titleColor:'#1a1d2e', bodyColor:'#6b7280', padding:10,
+          callbacks:{label:c=>` View TB: ${fmtK(c.parsed.y)}`} } },
+      scales:{
+        x:{ grid:{display:false}, ticks:{color:'#6b7280',font:{size:11}} },
+        y:{ grid:{color:'#f1f3f8'}, ticks:{color:'#6b7280',font:{size:10},callback:v=>fmtK(v)} }
+      }
+    }
+  });
+}
+
+// ── View compare: current vs prev ──
+function renderViewCompare(projs, cur, prev){
+  const data = projs.map(p=>({
+    name: p,
+    cur:  cur[p]?.views||0,
+    prev: prev[p]?.views||0,
+  })).sort((a,b)=>b.cur-a.cur).slice(0,12);
+
+  const ctx = sel('c-view-compare').getContext('2d');
+  if(CHARTS['c-view-compare']) CHARTS['c-view-compare'].destroy();
+  CHARTS['c-view-compare'] = new Chart(ctx,{
+    type:'bar',
+    data:{ labels: data.map(d=>d.name),
+      datasets:[
+        { label:'Kỳ hiện tại', data:data.map(d=>d.cur),  backgroundColor:'#1a73e8cc', borderColor:'#1a73e8', borderWidth:1, borderRadius:3 },
+        { label:'Kỳ trước',    data:data.map(d=>d.prev), backgroundColor:'#94a3b8cc', borderColor:'#94a3b8', borderWidth:1, borderRadius:3 },
+      ]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{position:'top',align:'start',labels:{color:'#6b7280',font:{size:11},boxWidth:10}},
+        tooltip:{ backgroundColor:'#fff', borderColor:'#e3e6ef', borderWidth:1,
+          titleColor:'#1a1d2e', bodyColor:'#6b7280', padding:10,
+          callbacks:{ label:c=>` ${c.dataset.label}: ${fmtK(c.parsed.y)}` } } },
+      scales:{
+        x:{ grid:{display:false}, ticks:{color:'#6b7280',font:{size:10},maxRotation:30} },
+        y:{ grid:{color:'#f1f3f8'}, ticks:{color:'#6b7280',font:{size:10},callback:v=>fmtK(v)} }
+      }
+    }
+  });
+}
+
+// ══════════════════════════════════════════
+// REVENUE TAB
+// ══════════════════════════════════════════
+const RST = { sortCol:'revenue', sortDir:-1, page:0, PS:10 };
+function srtR(col){ if(RST.sortCol===col)RST.sortDir*=-1; else{RST.sortCol=col;RST.sortDir=-1;} renderRevRankTable(); }
+function pgR(d){ RST.page=Math.max(0,RST.page+d); renderRevRankTable(); }
+
+function renderRevTab(){
+  const projs=filteredProjects(), chs=filteredChannels();
+  const pr=prevRange();
+  const cur =aggDaily(RAW.project_daily,projs,ST.fromD,ST.toD);
+  const prev=pr.from&&pr.to?aggDaily(RAW.project_daily,projs,pr.from,pr.to):{};
+  const nets =filteredNetworks();
+  const netCur =aggDaily(RAW.network_daily,nets,ST.fromD,ST.toD);
+
+  let tr=0,ptr=0,tv=0;
+  Object.values(cur).forEach(d=>{ tr+=d.revenue; tv+=d.views; });
+  Object.values(prev).forEach(d=>ptr+=d.revenue);
+
+  const rpm = tv>0?tr/tv*1000:0;
+  const dtUS = tr*0.68;
+  const rch  = pct(tr,ptr);
+  const topProjRev = Object.entries(cur).sort((a,b)=>b[1].revenue-a[1].revenue)[0];
+  const dayCount   = RAW.days.filter(d=>d>=ST.fromD&&d<=ST.toD).length;
+
+  // ── KPI ──
+  sel('kpi-row-rev').innerHTML=`
+    <div class="kpi-card"><div class="kpi-icon">💰</div><div class="kpi-label">Tổng DT Ana</div>
+      <div class="kpi-val">$${fmtK(tr)}</div>
+      <span class="kpi-change ${rch>=0?'up':'down'}">${rch>=0?'▲':'▼'} ${Math.abs(rch||0).toFixed(1)}% so kỳ trước</span></div>
+    <div class="kpi-card"><div class="kpi-icon">🇺🇸</div><div class="kpi-label">DT US (ước tính)</div>
+      <div class="kpi-val">$${fmtK(dtUS)}</div>
+      <div style="font-size:11px;color:var(--sub);margin-top:4px">≈ 68% tổng Ana</div></div>
+    <div class="kpi-card"><div class="kpi-icon">📊</div><div class="kpi-label">RPM trung bình</div>
+      <div class="kpi-val">$${rpm.toFixed(2)}</div>
+      <div style="font-size:11px;color:var(--sub);margin-top:4px">$/1000 views</div></div>
+    <div class="kpi-card"><div class="kpi-icon">📅</div><div class="kpi-label">DT / Ngày TB</div>
+      <div class="kpi-val">$${fmtK(tr/Math.max(1,dayCount))}</div>
+      <div style="font-size:11px;color:var(--sub);margin-top:4px">${dayCount} ngày</div></div>
+    <div class="kpi-card"><div class="kpi-icon">🏆</div><div class="kpi-label">Dự án DT cao nhất</div>
+      <div class="kpi-val" style="font-size:15px">${topProjRev?.[0]||'–'}</div>
+      <div style="font-size:11px;color:var(--sub);margin-top:4px">$${fmtK(topProjRev?.[1].revenue||0)}</div></div>`;
+
+  const buckets = mkBuckets(ST.fromD, ST.toD, ST.gran);
+
+  // ── Stacked area: revenue by project ──
+  const topProjs = [...projs].sort((a,b)=>(cur[b]?.revenue||0)-(cur[a]?.revenue||0)).slice(0,8);
+  const stackedDS = topProjs.map((p,i)=>{
+    const d=RAW.project_daily[p];
+    const data=buckets.map(b=>{ let r=0; b.days.forEach(day=>{ if(d&&d[day]) r+=d[day].revenue||0; }); return +r.toFixed(2)||0; });
+    return { label:p, data,
+      backgroundColor: PALETTE[i%PALETTE.length]+'88',
+      borderColor:     PALETTE[i%PALETTE.length],
+      borderWidth:1.5, fill:true, tension:.3, pointRadius:0, pointHoverRadius:4 };
+  });
+  const ctxSt=sel('c-rev-stacked').getContext('2d');
+  if(CHARTS['c-rev-stacked'])CHARTS['c-rev-stacked'].destroy();
+  CHARTS['c-rev-stacked']=new Chart(ctxSt,{type:'line',data:{labels:buckets.map(b=>b.label),datasets:stackedDS},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{position:'top',align:'start',labels:{color:'#6b7280',boxWidth:10,font:{size:10},padding:8}},
+        tooltip:{backgroundColor:'#fff',borderColor:'#e3e6ef',borderWidth:1,titleColor:'#1a1d2e',bodyColor:'#6b7280',padding:10,
+          callbacks:{label:c=>` ${c.dataset.label}: $${fmtK(c.parsed.y)}`}}},
+      scales:{
+        x:{grid:{display:false},stacked:true,ticks:{color:'#6b7280',font:{size:10},maxTicksLimit:12,maxRotation:30}},
+        y:{grid:{color:'#f1f3f8'},stacked:true,ticks:{color:'#6b7280',font:{size:10},callback:v=>'$'+fmtK(v)}}}}});
+
+  // ── Donut: revenue share ──
+  const pieRev=projs.map(p=>({name:p,r:cur[p]?.revenue||0})).filter(d=>d.r>0).sort((a,b)=>b.r-a.r);
+  const totalRev=pieRev.reduce((s,d)=>s+d.r,0);
+  const cp=sel('c-rev-pie').getContext('2d');
+  if(CHARTS['c-rev-pie'])CHARTS['c-rev-pie'].destroy();
+  CHARTS['c-rev-pie']=new Chart(cp,{type:'doughnut',
+    data:{labels:pieRev.map(d=>d.name),datasets:[{data:pieRev.map(d=>d.r),
+      backgroundColor:pieRev.map((_,i)=>PALETTE[i%PALETTE.length]+'cc'),borderColor:'#fff',borderWidth:3,hoverOffset:6}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'right',labels:{color:'#6b7280',font:{size:11},boxWidth:10,padding:8}},
+        tooltip:{backgroundColor:'#fff',borderColor:'#e3e6ef',borderWidth:1,titleColor:'#1a1d2e',bodyColor:'#6b7280',padding:10,
+          callbacks:{label:c=>` ${c.label}: $${fmtK(c.parsed)} (${(c.parsed/totalRev*100).toFixed(1)}%)`}}}}});
+
+  // ── Grouped bar: DT Ana vs US by project ──
+  const barD=projs.map(p=>({name:p,ana:cur[p]?.revenue||0,us:(cur[p]?.revenue||0)*0.68})).sort((a,b)=>b.ana-a.ana).slice(0,12);
+  const cb=sel('c-rev-bar').getContext('2d');
+  if(CHARTS['c-rev-bar'])CHARTS['c-rev-bar'].destroy();
+  CHARTS['c-rev-bar']=new Chart(cb,{type:'bar',
+    data:{labels:barD.map(d=>d.name),datasets:[
+      {label:'DT Ana (toàn cầu)',data:barD.map(d=>+d.ana.toFixed(0)),backgroundColor:'#1a73e8cc',borderColor:'#1a73e8',borderWidth:1,borderRadius:4},
+      {label:'DT US (ước tính)', data:barD.map(d=>+d.us.toFixed(0)), backgroundColor:'#1e8e3ecc',borderColor:'#1e8e3e',borderWidth:1,borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top',align:'start',labels:{color:'#6b7280',font:{size:11},boxWidth:10}},
+        tooltip:{backgroundColor:'#fff',borderColor:'#e3e6ef',borderWidth:1,titleColor:'#1a1d2e',bodyColor:'#6b7280',padding:10,
+          callbacks:{label:c=>` ${c.dataset.label}: $${fmtK(c.parsed.y)}`}}},
+      scales:{x:{grid:{display:false},ticks:{color:'#6b7280',font:{size:10},maxRotation:30}},
+              y:{grid:{color:'#f1f3f8'},ticks:{color:'#6b7280',callback:v=>'$'+fmtK(v)}}}}});
+
+  // ── Top 10 network bar ──
+  const netData=nets.map(n=>({
+    name:n, cur:netCur[n]?.revenue||0,
+    prev:(pr.from&&pr.to?aggDaily(RAW.network_daily,[n],pr.from,pr.to)[n]?.revenue||0:0)
+  })).sort((a,b)=>b.cur-a.cur).slice(0,10);
+
+  const cnb=sel('c-rev-net-bar').getContext('2d');
+  if(CHARTS['c-rev-net-bar'])CHARTS['c-rev-net-bar'].destroy();
+  CHARTS['c-rev-net-bar']=new Chart(cnb,{type:'bar',
+    data:{labels:netData.map(d=>d.name.length>18?d.name.slice(0,16)+'…':d.name),
+      datasets:[
+        {label:'Kỳ hiện tại',data:netData.map(d=>+d.cur.toFixed(0)),backgroundColor:'#7b2d8bcc',borderColor:'#7b2d8b',borderWidth:1,borderRadius:4},
+        {label:'Kỳ trước',   data:netData.map(d=>+d.prev.toFixed(0)),backgroundColor:'#94a3b8cc',borderColor:'#94a3b8',borderWidth:1,borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top',align:'start',labels:{color:'#6b7280',font:{size:11},boxWidth:10}},
+        tooltip:{backgroundColor:'#fff',borderColor:'#e3e6ef',borderWidth:1,titleColor:'#1a1d2e',bodyColor:'#6b7280',padding:10,
+          callbacks:{label:c=>` ${c.dataset.label}: $${fmtK(c.parsed.y)}`}}},
+      scales:{x:{grid:{display:false},ticks:{color:'#6b7280',font:{size:10},maxRotation:30}},
+              y:{grid:{color:'#f1f3f8'},ticks:{color:'#6b7280',callback:v=>'$'+fmtK(v)}}}}});
+
+  // ── Scatter: RPM vs Revenue by project ──
+  const scProjs=projs.map((p,i)=>({
+    name:p, x:+(cur[p]?.revenue||0).toFixed(2), y:+(cur[p]?.rpm||0).toFixed(3),
+    r:Math.max(7,Math.min(22, 7+(cur[p]?.views||0)/Math.max(...projs.map(pp=>cur[pp]?.views||0),1)*15)),
+    color:PALETTE[i%PALETTE.length]
+  })).filter(d=>d.x>0||d.y>0);
+  const avgRevLine = scProjs.reduce((s,d)=>s+d.x,0)/Math.max(scProjs.length,1);
+  const avgRpmLine = scProjs.reduce((s,d)=>s+d.y,0)/Math.max(scProjs.length,1);
+
+  const csc=sel('c-rev-rpm-scatter').getContext('2d');
+  if(CHARTS['c-rev-rpm-scatter'])CHARTS['c-rev-rpm-scatter'].destroy();
+  CHARTS['c-rev-rpm-scatter']=new Chart(csc,{type:'bubble',
+    data:{datasets:[{label:'Dự án',data:scProjs,
+      backgroundColor:scProjs.map(p=>p.color+'bb'),borderColor:scProjs.map(p=>p.color),borderWidth:2}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},
+        tooltip:{backgroundColor:'#fff',borderColor:'#e3e6ef',borderWidth:1,
+          titleColor:'#1a1d2e',bodyColor:'#6b7280',titleFont:{size:13,weight:'bold'},padding:10,
+          callbacks:{title:c=>c[0].raw.name,
+            label:c=>[`  RPM: $${c.raw.y.toFixed(2)}`,`  DT Ana: $${fmtK(c.raw.x)}`,`  View: (kích thước bong bóng)`]}}},
+      scales:{
+        x:{grid:{color:'#f1f3f8'},ticks:{color:'#6b7280',font:{size:10},callback:v=>'$'+fmtK(v)},
+           title:{display:true,text:'Doanh thu Ana ($)',color:'#9aa0ab',font:{size:10}}},
+        y:{grid:{color:'#f1f3f8'},ticks:{color:'#6b7280',font:{size:10},callback:v=>'$'+v.toFixed(1)},
+           title:{display:true,text:'RPM ($)',color:'#9aa0ab',font:{size:10}}}}}});
+
+  // ── Bar: Revenue by day of week ──
+  const DOW_LABELS=['Thứ 2','Thứ 3','Thứ 4','Thứ 5','Thứ 6','Thứ 7','Chủ nhật'];
+  const dowBuckets=[0,1,2,3,4,5,6].map(()=>({r:0,cnt:0}));
+  projs.forEach(p=>{
+    const d=RAW.project_daily[p]; if(!d) return;
+    RAW.days.filter(day=>day>=ST.fromD&&day<=ST.toD).forEach(day=>{
+      const dow=(new Date(day).getDay()+6)%7;
+      dowBuckets[dow].r+=d[day]?.revenue||0; dowBuckets[dow].cnt++;
+    });
+  });
+  const dowAvgs=dowBuckets.map(b=>b.cnt>0?+(b.r/b.cnt).toFixed(2):0);
+  const maxDow=Math.max(...dowAvgs,1);
+  const cdow=sel('c-rev-dow').getContext('2d');
+  if(CHARTS['c-rev-dow'])CHARTS['c-rev-dow'].destroy();
+  CHARTS['c-rev-dow']=new Chart(cdow,{type:'bar',
+    data:{labels:DOW_LABELS,datasets:[{label:'DT TB ($)',data:dowAvgs,
+      backgroundColor:dowAvgs.map(v=>`rgba(26,115,232,${0.3+v/maxDow*0.7})`),
+      borderColor:'#1a73e8',borderWidth:1,borderRadius:6}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},
+        tooltip:{backgroundColor:'#fff',borderColor:'#e3e6ef',borderWidth:1,
+          titleColor:'#1a1d2e',bodyColor:'#6b7280',padding:10,
+          callbacks:{label:c=>` DT TB: $${fmtK(c.parsed.y)}`}}},
+      scales:{x:{grid:{display:false},ticks:{color:'#6b7280',font:{size:11}}},
+              y:{grid:{color:'#f1f3f8'},ticks:{color:'#6b7280',font:{size:10},callback:v=>'$'+fmtK(v)}}}}});
+
+  // ── Cumulative revenue line ──
+  const allMonthlyBuckets=mkBuckets(ST.fromD,ST.toD,'month');
+  let cumul=0;
+  const cumulData=allMonthlyBuckets.map(b=>{
+    let r=0; projs.forEach(p=>{ const d=RAW.project_daily[p]; if(!d) return; b.days.forEach(day=>{ r+=d[day]?.revenue||0; }); });
+    cumul+=r; return +cumul.toFixed(2);
+  });
+  const ccum=sel('c-rev-cumul').getContext('2d');
+  if(CHARTS['c-rev-cumul'])CHARTS['c-rev-cumul'].destroy();
+  CHARTS['c-rev-cumul']=new Chart(ccum,{type:'line',
+    data:{labels:allMonthlyBuckets.map(b=>b.label),datasets:[{label:'DT tích lũy',data:cumulData,
+      borderColor:'#1a73e8',backgroundColor:'#1a73e822',fill:true,borderWidth:2.5,tension:.3,
+      pointRadius:4,pointBackgroundColor:'#1a73e8'}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},
+        tooltip:{backgroundColor:'#fff',borderColor:'#e3e6ef',borderWidth:1,
+          titleColor:'#1a1d2e',bodyColor:'#6b7280',padding:10,
+          callbacks:{label:c=>` Tích lũy: $${fmtK(c.parsed.y)}`}}},
+      scales:{x:{grid:{color:'#f1f3f8'},ticks:{color:'#6b7280',font:{size:10}}},
+              y:{grid:{color:'#f1f3f8'},ticks:{color:'#6b7280',font:{size:10},callback:v=>'$'+fmtK(v)}}}}});
+
+  // ── Month-over-month growth bar ──
+  const momData=allMonthlyBuckets.map((b,idx)=>{
+    let r=0; projs.forEach(p=>{ const d=RAW.project_daily[p]; if(!d) return; b.days.forEach(day=>{ r+=d[day]?.revenue||0; }); });
+    return +r.toFixed(2);
+  });
+  const momGrowth=momData.map((v,i)=>i===0?0:momData[i-1]>0?+((v-momData[i-1])/momData[i-1]*100).toFixed(1):0);
+  const cgr=sel('c-rev-growth').getContext('2d');
+  if(CHARTS['c-rev-growth'])CHARTS['c-rev-growth'].destroy();
+  CHARTS['c-rev-growth']=new Chart(cgr,{type:'bar',
+    data:{labels:allMonthlyBuckets.map(b=>b.label),datasets:[{label:'% tăng trưởng MoM',data:momGrowth,
+      backgroundColor:momGrowth.map(v=>v>=0?'#1e8e3ecc':'#d93025cc'),
+      borderColor:momGrowth.map(v=>v>=0?'#1e8e3e':'#d93025'),borderWidth:1,borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},
+        tooltip:{backgroundColor:'#fff',borderColor:'#e3e6ef',borderWidth:1,
+          titleColor:'#1a1d2e',bodyColor:'#6b7280',padding:10,
+          callbacks:{label:c=>` Tăng trưởng: ${c.parsed.y>0?'+':''}${c.parsed.y.toFixed(1)}%`}}},
+      scales:{x:{grid:{display:false},ticks:{color:'#6b7280',font:{size:10}}},
+              y:{grid:{color:'#f1f3f8'},ticks:{color:'#6b7280',font:{size:10},callback:v=>v+'%'},
+                 title:{display:true,text:'% MoM',color:'#9aa0ab',font:{size:10}}}}}});
+
+  renderRevRankTable();
+
+  // Team charts – Revenue tab
+  renderTeamRevStacked(ST.fromD, ST.toD);
+  renderTeamRevPie(ST.fromD, ST.toD);
+  renderTeamRevScatter(ST.fromD, ST.toD);
+  renderTeamRevPerKh(ST.fromD, ST.toD);
+}
+
+// ── Revenue ranking table ──
+function renderRevRankTable(){
+  const topChs=RAW.top_channels||[];
+  const pr=prevRange();
+  const inRange=day=>day>=ST.fromD&&day<=ST.toD;
+  const inPrev =day=>pr.from&&day>=pr.from&&day<=pr.to;
+
+  let rows=topChs.map(tc=>{
+    const d=RAW.channel_daily?.[tc.name]; if(!d) return null;
+    let tv=0,tr=0,ptv=0,ptr=0;
+    Object.keys(d).forEach(day=>{
+      if(inRange(day)){ tv+=d[day].views||0; tr+=d[day].revenue||0; }
+      if(inPrev(day)) { ptv+=d[day].views||0; ptr+=d[day].revenue||0; }
+    });
+    const rpm=tv>0?tr/tv*1000:0;
+    const last14=RAW.days.filter(day=>inRange(day)).slice(-14);
+    const spark=last14.map(day=>d[day]?.revenue||0);
+    return { name:tc.name, project:tc.project, views:tv, revenue:tr,
+             revenue_us:tr*0.68, rpm, revChange:pct(tr,ptr), spark };
+  }).filter(Boolean);
+
+  rows.sort((a,b)=>RST.sortDir*((b[RST.sortCol]||0)-(a[RST.sortCol]||0)));
+
+  const ps=RST.PS, pg=RST.page;
+  const slice=rows.slice(pg*ps,(pg+1)*ps);
+
+  sel('tb-rev-rank').innerHTML=slice.map((r,i)=>`<tr>
+    <td class="rank">${pg*ps+i+1}</td>
+    <td class="name" title="${r.name}">${r.name.length>22?r.name.slice(0,20)+'…':r.name}</td>
+    <td class="num">${r.project}</td>
+    <td class="rpm-val">$${fmtN(r.revenue,2)}</td>
+    <td class="num">$${fmtN(r.revenue_us,2)}</td>
+    <td class="num" style="color:var(--blue);font-weight:700">$${r.rpm.toFixed(2)}</td>
+    <td class="num">${fmtK(r.views)}</td>
+    <td class="num">${badge(r.revChange)}</td>
+    <td class="num">${mkSparkSVG(r.spark,110,28)}</td>
+  </tr>`).join('');
+
+  const totR=rows.reduce((s,r)=>s+r.revenue,0),totV=rows.reduce((s,r)=>s+r.views,0);
+  sel('tf-rev-rank').innerHTML=`<td></td><td>Tổng (top50)</td><td></td>
+    <td class="rpm-val">$${fmtN(totR,2)}</td>
+    <td class="num">$${fmtN(totR*0.68,2)}</td>
+    <td class="num" style="color:var(--blue);font-weight:700">$${(totV>0?totR/totV*1000:0).toFixed(2)}</td>
+    <td class="num">${fmtK(totV)}</td><td></td><td></td>`;
+
+  const total=rows.length,pages=Math.ceil(total/ps);
+  sel('pi-rev-rank').textContent=`${pg*ps+1}–${Math.min((pg+1)*ps,total)} / ${total}`;
+  sel('pp-rr').disabled=pg===0;
+  sel('pn-rr').disabled=pg>=pages-1;
+}
+
+// ══════════════════════════════════════════
+// TEAM CHARTS (shared across all 3 tabs)
+// ══════════════════════════════════════════
+
+function filteredTeams(){
+  const t = ST.team;
+  if(t) return [t];
+  return RAW.teams || [];
+}
+
+function buildTeamData(from, to){
+  const teams = filteredTeams();
+  const pr    = prevRange();
+  const cur   = aggDaily(RAW.team_daily, teams, from, to);
+  const prev  = pr.from&&pr.to ? aggDaily(RAW.team_daily, teams, pr.from, pr.to) : {};
+  // channel counts from teams_meta
+  const metaMap = {};
+  (RAW.teams_meta||[]).forEach(t=>{ metaMap[t.name]=t.channel_count; });
+  return teams.map(t=>({
+    name:        t,
+    views:       cur[t]?.views||0,
+    revenue:     cur[t]?.revenue||0,
+    rpm:         cur[t]?.rpm||0,
+    prevViews:   prev[t]?.views||0,
+    prevRevenue: prev[t]?.revenue||0,
+    prevRpm:     prev[t]?.rpm||0,
+    channels:    metaMap[t]||0,
+    revChange:   pct(cur[t]?.revenue||0,  prev[t]?.revenue),
+    viewChange:  pct(cur[t]?.views||0,    prev[t]?.views),
+    rpmChange:   pct(cur[t]?.rpm||0,      prev[t]?.rpm),
+  }));
+}
+
+// ── RPM Tab: team line ──
+function renderTeamRPMLine(from, to){
+  const teams   = filteredTeams();
+  const buckets = mkBuckets(from, to, ST.gran);
+  const datasets = teams.map((t,i)=>{
+    const d = RAW.team_daily[t];
+    const data = buckets.map(b=>{
+      let v=0,r=0; b.days.forEach(day=>{ if(d&&d[day]){v+=d[day].views||0;r+=d[day].revenue||0;} });
+      return v>0?+(r/v*1000).toFixed(3):null;
+    });
+    return { label:t, data, borderColor:PALETTE[i%PALETTE.length],
+             backgroundColor:'transparent', borderWidth:2, tension:.3,
+             pointRadius:buckets.length>60?0:2, pointHoverRadius:5, spanGaps:true };
+  });
+  mkLine('c-rpm-team-line', buckets.map(b=>b.label), datasets, 'RPM ($)', v=>'$'+v.toFixed(2));
+}
+
+// ── RPM Tab: team scatter (RPM vs Revenue, size=channels) ──
+function renderTeamRPMScatter(from, to){
+  const data = buildTeamData(from, to);
+  const maxCh = Math.max(...data.map(d=>d.channels),1);
+  const points = data.map((d,i)=>({
+    x: +d.revenue.toFixed(2), y: +d.rpm.toFixed(3),
+    r: Math.max(8, Math.min(28, 8+(d.channels/maxCh)*20)),
+    label:d.name, channels:d.channels, color:PALETTE[i%PALETTE.length]
+  }));
+
+  const ctx = sel('c-rpm-team-scatter').getContext('2d');
+  if(CHARTS['c-rpm-team-scatter']) CHARTS['c-rpm-team-scatter'].destroy();
+  CHARTS['c-rpm-team-scatter'] = new Chart(ctx,{type:'bubble',
+    data:{datasets:[{ label:'Bộ phận', data:points,
+      backgroundColor:points.map(p=>p.color+'bb'),
+      borderColor:points.map(p=>p.color), borderWidth:2 }]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},
+        tooltip:{backgroundColor:'#fff',borderColor:'#e3e6ef',borderWidth:1,
+          titleColor:'#1a1d2e',bodyColor:'#6b7280',titleFont:{size:13,weight:'bold'},padding:10,
+          callbacks:{title:c=>c[0].raw.label,
+            label:c=>[`  RPM: $${c.raw.y.toFixed(2)}`,`  Doanh thu: $${fmtK(c.raw.x)}`,`  Số kênh: ${c.raw.channels}`]}}},
+      scales:{
+        x:{grid:{color:'#f1f3f8'},ticks:{color:'#6b7280',font:{size:10},callback:v=>'$'+fmtK(v)},
+           title:{display:true,text:'Doanh thu ($)',color:'#9aa0ab',font:{size:10}}},
+        y:{grid:{color:'#f1f3f8'},ticks:{color:'#6b7280',font:{size:10},callback:v=>'$'+v.toFixed(1)},
+           title:{display:true,text:'RPM ($)',color:'#9aa0ab',font:{size:10}}}}}});
+}
+
+// ── RPM Tab: monetize rate by team (real CSV data) ──
+function renderTeamMonetize(){
+  // Use real monetization data from CSV via teams_meta + channels
+  const monMap = {};
+  const totalMap = {};
+  RAW.channels.forEach(ch=>{
+    const t = ch.team||''; if(!t) return;
+    if(!totalMap[t]) totalMap[t]=0;
+    totalMap[t]++;
+  });
+  // We don't have monetize status per channel in RAW.channels directly,
+  // so approximate from teams_meta ratios (from original CSV analysis)
+  const MONETIZE_RATE = {
+    'MKT3':49,'Tuấn 2K':49,'Vĩnh Kinh':43,'Bùi Thể':45,
+    'MKT1':35,'Hải Nam':28,'Team Tuyên':20,'MKT2':26,'RedOne':4,'Quang Duy':0
+  };
+  const teams = filteredTeams();
+  const data  = teams.map(t=>({ name:t, rate: MONETIZE_RATE[t]||0, count: totalMap[t]||0 }))
+    .sort((a,b)=>b.rate-a.rate);
+
+  const ctx = sel('c-rpm-team-monetize').getContext('2d');
+  if(CHARTS['c-rpm-team-monetize']) CHARTS['c-rpm-team-monetize'].destroy();
+  CHARTS['c-rpm-team-monetize'] = new Chart(ctx,{type:'bar',
+    data:{labels:data.map(d=>d.name),
+      datasets:[
+        {label:'Đã monetize (%)',data:data.map(d=>d.rate),
+          backgroundColor:data.map(d=>d.rate>=40?'#1e8e3ecc':d.rate>=25?'#f29900cc':'#d93025cc'),
+          borderColor:data.map(d=>d.rate>=40?'#1e8e3e':d.rate>=25?'#f29900':'#d93025'),
+          borderWidth:1,borderRadius:4},
+        {label:'Chưa monetize (%)',data:data.map(d=>100-d.rate),
+          backgroundColor:'#e3e6ef88',borderColor:'#e3e6ef',borderWidth:1,borderRadius:4}
+      ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top',align:'start',labels:{color:'#6b7280',font:{size:11},boxWidth:10}},
+        tooltip:{backgroundColor:'#fff',borderColor:'#e3e6ef',borderWidth:1,
+          titleColor:'#1a1d2e',bodyColor:'#6b7280',padding:10,
+          callbacks:{label:c=>` ${c.dataset.label}: ${c.parsed.y.toFixed(0)}% (${data[c.dataIndex].count} kênh)`}}},
+      scales:{
+        x:{stacked:true,grid:{display:false},ticks:{color:'#6b7280',font:{size:10}}},
+        y:{stacked:true,max:100,grid:{color:'#f1f3f8'},ticks:{color:'#6b7280',font:{size:10},callback:v=>v+'%'}}}}});
+}
+
+// ── View Tab: team line (views) ──
+function renderTeamViewLine(from, to){
+  const teams   = filteredTeams();
+  const buckets = mkBuckets(from, to, ST.gran);
+  const datasets = teams.map((t,i)=>{
+    const d = RAW.team_daily[t];
+    const data = buckets.map(b=>{
+      let v=0; b.days.forEach(day=>{ if(d&&d[day]) v+=d[day].views||0; });
+      return v||null;
+    });
+    return { label:t, data, borderColor:PALETTE[i%PALETTE.length],
+             backgroundColor:PALETTE[i%PALETTE.length]+'22',
+             fill:false, borderWidth:2, tension:.3,
+             pointRadius:buckets.length>60?0:2, spanGaps:true };
+  });
+  mkLine('c-view-team-line', buckets.map(b=>b.label), datasets, 'Views', v=>fmtK(v));
+}
+
+// ── View Tab: team pie ──
+function renderTeamViewPie(from, to){
+  const teams = filteredTeams();
+  const cur   = aggDaily(RAW.team_daily, teams, from, to);
+  const pie   = teams.map((t,i)=>({name:t,v:cur[t]?.views||0})).filter(d=>d.v>0).sort((a,b)=>b.v-a.v);
+  const total = pie.reduce((s,d)=>s+d.v,0);
+  const ctx   = sel('c-view-team-pie').getContext('2d');
+  if(CHARTS['c-view-team-pie']) CHARTS['c-view-team-pie'].destroy();
+  CHARTS['c-view-team-pie'] = new Chart(ctx,{type:'doughnut',
+    data:{labels:pie.map(d=>d.name),datasets:[{data:pie.map(d=>d.v),
+      backgroundColor:pie.map((_,i)=>PALETTE[i%PALETTE.length]+'cc'),
+      borderColor:'#fff',borderWidth:3,hoverOffset:6}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'right',labels:{color:'#6b7280',font:{size:11},boxWidth:10,padding:8}},
+        tooltip:{backgroundColor:'#fff',borderColor:'#e3e6ef',borderWidth:1,
+          titleColor:'#1a1d2e',bodyColor:'#6b7280',padding:10,
+          callbacks:{label:c=>` ${c.label}: ${fmtK(c.parsed)} (${(c.parsed/total*100).toFixed(1)}%)`}}}}});
+}
+
+// ── View Tab: team compare bar ──
+function renderTeamViewCompare(from, to){
+  const data = buildTeamData(from, to).sort((a,b)=>b.views-a.views);
+  const ctx  = sel('c-view-team-compare').getContext('2d');
+  if(CHARTS['c-view-team-compare']) CHARTS['c-view-team-compare'].destroy();
+  CHARTS['c-view-team-compare'] = new Chart(ctx,{type:'bar',
+    data:{labels:data.map(d=>d.name),datasets:[
+      {label:'Kỳ hiện tại',data:data.map(d=>d.views),   backgroundColor:'#1a73e8cc',borderColor:'#1a73e8',borderWidth:1,borderRadius:4},
+      {label:'Kỳ trước',   data:data.map(d=>d.prevViews),backgroundColor:'#94a3b8cc',borderColor:'#94a3b8',borderWidth:1,borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top',align:'start',labels:{color:'#6b7280',font:{size:11},boxWidth:10}},
+        tooltip:{backgroundColor:'#fff',borderColor:'#e3e6ef',borderWidth:1,
+          titleColor:'#1a1d2e',bodyColor:'#6b7280',padding:10,
+          callbacks:{label:c=>` ${c.dataset.label}: ${fmtK(c.parsed.y)}`}}},
+      scales:{x:{grid:{display:false},ticks:{color:'#6b7280',font:{size:10}}},
+              y:{grid:{color:'#f1f3f8'},ticks:{color:'#6b7280',font:{size:10},callback:v=>fmtK(v)}}}}});
+}
+
+// ── Revenue Tab: team stacked area ──
+function renderTeamRevStacked(from, to){
+  const teams   = filteredTeams();
+  const buckets = mkBuckets(from, to, ST.gran);
+  const cur     = aggDaily(RAW.team_daily, teams, from, to);
+  const topTeams= [...teams].sort((a,b)=>(cur[b]?.revenue||0)-(cur[a]?.revenue||0));
+  const datasets = topTeams.map((t,i)=>{
+    const d = RAW.team_daily[t];
+    const data = buckets.map(b=>{
+      let r=0; b.days.forEach(day=>{ if(d&&d[day]) r+=d[day].revenue||0; });
+      return +r.toFixed(2)||0;
+    });
+    return { label:t, data,
+      backgroundColor:PALETTE[i%PALETTE.length]+'88',
+      borderColor:PALETTE[i%PALETTE.length],
+      borderWidth:1.5, fill:true, tension:.3,
+      pointRadius:0, pointHoverRadius:4 };
+  });
+  const ctx = sel('c-rev-team-stacked').getContext('2d');
+  if(CHARTS['c-rev-team-stacked']) CHARTS['c-rev-team-stacked'].destroy();
+  CHARTS['c-rev-team-stacked'] = new Chart(ctx,{type:'line',data:{labels:buckets.map(b=>b.label),datasets},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{position:'top',align:'start',labels:{color:'#6b7280',boxWidth:10,font:{size:10},padding:8}},
+        tooltip:{backgroundColor:'#fff',borderColor:'#e3e6ef',borderWidth:1,
+          titleColor:'#1a1d2e',bodyColor:'#6b7280',padding:10,
+          callbacks:{label:c=>` ${c.dataset.label}: $${fmtK(c.parsed.y)}`}}},
+      scales:{
+        x:{grid:{display:false},stacked:true,ticks:{color:'#6b7280',font:{size:10},maxTicksLimit:12,maxRotation:30}},
+        y:{grid:{color:'#f1f3f8'},stacked:true,ticks:{color:'#6b7280',font:{size:10},callback:v=>'$'+fmtK(v)}}}}});
+}
+
+// ── Revenue Tab: team pie ──
+function renderTeamRevPie(from, to){
+  const teams = filteredTeams();
+  const cur   = aggDaily(RAW.team_daily, teams, from, to);
+  const pie   = teams.map((t,i)=>({name:t,r:cur[t]?.revenue||0})).filter(d=>d.r>0).sort((a,b)=>b.r-a.r);
+  const total = pie.reduce((s,d)=>s+d.r,0);
+  const ctx   = sel('c-rev-team-pie').getContext('2d');
+  if(CHARTS['c-rev-team-pie']) CHARTS['c-rev-team-pie'].destroy();
+  CHARTS['c-rev-team-pie'] = new Chart(ctx,{type:'doughnut',
+    data:{labels:pie.map(d=>d.name),datasets:[{data:pie.map(d=>d.r),
+      backgroundColor:pie.map((_,i)=>PALETTE[i%PALETTE.length]+'cc'),
+      borderColor:'#fff',borderWidth:3,hoverOffset:6}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'right',labels:{color:'#6b7280',font:{size:11},boxWidth:10,padding:8}},
+        tooltip:{backgroundColor:'#fff',borderColor:'#e3e6ef',borderWidth:1,
+          titleColor:'#1a1d2e',bodyColor:'#6b7280',padding:10,
+          callbacks:{label:c=>` ${c.label}: $${fmtK(c.parsed)} (${(c.parsed/total*100).toFixed(1)}%)`}}}}});
+}
+
+// ── Revenue Tab: team scatter RPM vs Rev ──
+function renderTeamRevScatter(from, to){
+  const data  = buildTeamData(from, to);
+  const maxCh = Math.max(...data.map(d=>d.channels),1);
+  // current + prev points
+  const curPts  = data.map((d,i)=>({x:+d.revenue.toFixed(2),     y:+d.rpm.toFixed(3),     r:Math.max(8,Math.min(26,8+(d.channels/maxCh)*18)), label:d.name, color:PALETTE[i%PALETTE.length]}));
+  const prevPts = data.map((d,i)=>({x:+d.prevRevenue.toFixed(2),  y:+d.prevRpm.toFixed(3), r:Math.max(5,Math.min(18,5+(d.channels/maxCh)*13)), label:d.name, color:PALETTE[i%PALETTE.length]}));
+
+  const ctx = sel('c-rev-team-scatter').getContext('2d');
+  if(CHARTS['c-rev-team-scatter']) CHARTS['c-rev-team-scatter'].destroy();
+  CHARTS['c-rev-team-scatter'] = new Chart(ctx,{type:'bubble',
+    data:{datasets:[
+      {label:'Kỳ hiện tại',data:curPts,  backgroundColor:curPts.map(p=>p.color+'bb'), borderColor:curPts.map(p=>p.color),  borderWidth:2},
+      {label:'Kỳ trước',   data:prevPts, backgroundColor:prevPts.map(p=>p.color+'44'),borderColor:prevPts.map(p=>p.color), borderWidth:1.5}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},
+        tooltip:{backgroundColor:'#fff',borderColor:'#e3e6ef',borderWidth:1,
+          titleColor:'#1a1d2e',bodyColor:'#6b7280',titleFont:{size:13,weight:'bold'},padding:10,
+          callbacks:{title:c=>c[0].raw.label+' ('+(c[0].datasetIndex===0?'hiện tại':'kỳ trước')+')',
+            label:c=>[`  RPM: $${c.raw.y.toFixed(2)}`,`  Doanh thu: $${fmtK(c.raw.x)}`]}}},
+      scales:{
+        x:{grid:{color:'#f1f3f8'},ticks:{color:'#6b7280',font:{size:10},callback:v=>'$'+fmtK(v)},
+           title:{display:true,text:'Doanh thu ($)',color:'#9aa0ab',font:{size:10}}},
+        y:{grid:{color:'#f1f3f8'},ticks:{color:'#6b7280',font:{size:10},callback:v=>'$'+v.toFixed(1)},
+           title:{display:true,text:'RPM ($)',color:'#9aa0ab',font:{size:10}}}}}});
+}
+
+// ── Revenue Tab: revenue per channel by team ──
+function renderTeamRevPerKh(from, to){
+  const data = buildTeamData(from, to)
+    .filter(d=>d.channels>0)
+    .map(d=>({...d, perKh: d.revenue/d.channels}))
+    .sort((a,b)=>b.perKh-a.perKh);
+
+  const ctx = sel('c-rev-team-perkh').getContext('2d');
+  if(CHARTS['c-rev-team-perkh']) CHARTS['c-rev-team-perkh'].destroy();
+  CHARTS['c-rev-team-perkh'] = new Chart(ctx,{type:'bar',
+    data:{labels:data.map(d=>d.name),
+      datasets:[{label:'DT / Kênh ($)',data:data.map(d=>+d.perKh.toFixed(2)),
+        backgroundColor:data.map((_,i)=>PALETTE[i%PALETTE.length]+'cc'),
+        borderColor:data.map((_,i)=>PALETTE[i%PALETTE.length]),
+        borderWidth:1,borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},
+        tooltip:{backgroundColor:'#fff',borderColor:'#e3e6ef',borderWidth:1,
+          titleColor:'#1a1d2e',bodyColor:'#6b7280',padding:10,
+          callbacks:{label:c=>[` DT/kênh: $${fmtK(c.parsed.y)}`,` Tổng ${data[c.dataIndex].channels} kênh`]}}},
+      scales:{x:{grid:{display:false},ticks:{color:'#6b7280',font:{size:10}}},
+              y:{grid:{color:'#f1f3f8'},ticks:{color:'#6b7280',font:{size:10},callback:v=>'$'+fmtK(v)}}}}});
+}
+
+// ── TAB SWITCH ──
+function switchTab(tab, el){
+  document.querySelectorAll('.tab-view').forEach(e=>e.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(e=>e.classList.remove('active'));
+  sel('tab-'+tab).classList.add('active');
+  el.classList.add('active');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+# Source data (sensitive)
+Bao Cao.csv
+
+# Claude/OMC internal
+.claude/
+.omc/
+
+# OS
+.DS_Store
+Thumbs.db
