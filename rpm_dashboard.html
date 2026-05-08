@@ -157,6 +157,26 @@ code{background:rgba(0,0,0,.06);padding:1px 5px;border-radius:4px;font-size:11px
   .kpi-row{grid-template-columns:1fr 1fr;}
   .main{padding:12px;}
 }
+/* ── Searchable dropdown ── */
+.sd-wrap{position:relative;display:inline-block;min-width:130px;}
+.sd-input{width:100%;padding:4px 22px 4px 8px;border:1px solid var(--border);border-radius:6px;
+  background:var(--surface2);color:var(--text);font-size:12px;cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236b7280'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 7px center;box-sizing:border-box;}
+.sd-input.active{border-color:var(--blue);box-shadow:0 0 0 2px #1a73e822;}
+.sd-input.has-value{color:var(--blue);font-weight:600;border-color:var(--blue);}
+.sd-dropdown{display:none;position:absolute;top:calc(100% + 4px);left:0;min-width:200px;max-width:300px;
+  background:var(--surface);border:1px solid var(--border);border-radius:8px;
+  box-shadow:0 8px 24px #0002;z-index:999;overflow:hidden;}
+.sd-wrap.open .sd-dropdown{display:block;}
+.sd-search{width:100%;padding:8px 10px;border:none;border-bottom:1px solid var(--border);
+  background:var(--surface2);color:var(--text);font-size:12px;outline:none;box-sizing:border-box;}
+.sd-list{max-height:220px;overflow-y:auto;}
+.sd-item{padding:7px 12px;font-size:12px;cursor:pointer;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sd-item:hover{background:var(--surface2);color:var(--blue);}
+.sd-item.selected{color:var(--blue);font-weight:600;background:#1a73e811;}
+.sd-item.all{color:var(--sub);font-style:italic;}
+.sd-item.autofilled{color:var(--sub);font-style:italic;font-size:11px;pointer-events:none;padding:4px 12px;background:var(--surface2);}
 </style>
 </head>
 <body>
@@ -173,6 +193,14 @@ code{background:rgba(0,0,0,.06);padding:1px 5px;border-radius:4px;font-size:11px
   <span class="demo-badge">⚠ Dữ liệu Demo</span>
 </nav>
 
+<!-- CHANNEL MODE BANNER -->
+<div id="channel-mode-banner" style="display:none;background:#1a73e8;color:#fff;padding:8px 20px;font-size:13px;font-weight:500;align-items:center;gap:10px;position:sticky;top:48px;z-index:99">
+  <span>📺 Đang xem kênh đơn:</span>
+  <span id="channel-mode-name" style="font-weight:700"></span>
+  <span style="opacity:.7">— Tất cả biểu đồ hiển thị dữ liệu riêng của kênh này</span>
+  <button onclick="resetFilters()" style="margin-left:auto;background:#fff2;border:1px solid #fff5;color:#fff;border-radius:6px;padding:3px 12px;cursor:pointer;font-size:12px">✕ Xóa filter kênh</button>
+</div>
+
 <!-- FILTER BAR -->
 <div class="filterbar">
   <div class="filter-group">
@@ -188,20 +216,25 @@ code{background:rgba(0,0,0,.06);padding:1px 5px;border-radius:4px;font-size:11px
   </div>
   <div class="filter-group">
     <span class="filter-label">Dự án</span>
-    <select id="filterProject" onchange="applyFilters()"><option value="">Tất cả</option></select>
+    <div class="sd-wrap" id="sd-project"><input class="sd-input" placeholder="Tất cả" readonly><div class="sd-dropdown"><input class="sd-search" placeholder="Tìm dự án…"><div class="sd-list"></div></div></div>
   </div>
   <div class="filter-group">
     <span class="filter-label">Network</span>
-    <select id="filterNetwork" onchange="applyFilters()"><option value="">Tất cả</option></select>
+    <div class="sd-wrap" id="sd-network"><input class="sd-input" placeholder="Tất cả" readonly><div class="sd-dropdown"><input class="sd-search" placeholder="Tìm network…"><div class="sd-list"></div></div></div>
   </div>
   <div class="filter-group">
     <span class="filter-label">Bộ phận</span>
-    <select id="filterTeam" onchange="applyFilters()"><option value="">Tất cả</option></select>
+    <div class="sd-wrap" id="sd-team"><input class="sd-input" placeholder="Tất cả" readonly><div class="sd-dropdown"><input class="sd-search" placeholder="Tìm bộ phận…"><div class="sd-list"></div></div></div>
   </div>
   <div class="filter-group">
     <span class="filter-label">Kênh</span>
-    <select id="filterChannel" onchange="applyFilters()"><option value="">Tất cả</option></select>
+    <div class="sd-wrap" id="sd-channel"><input class="sd-input" placeholder="Tất cả" readonly><div class="sd-dropdown"><input class="sd-search" placeholder="Tìm kênh…"><div class="sd-list"></div></div></div>
   </div>
+  <!-- hidden selects kept for compatibility with existing JS -->
+  <select id="filterProject" style="display:none"></select>
+  <select id="filterNetwork" style="display:none"></select>
+  <select id="filterTeam"    style="display:none"></select>
+  <select id="filterChannel" style="display:none"></select>
   <button class="btn-reset" onclick="resetFilters()">↺ Đặt lại</button>
 </div>
 
@@ -678,6 +711,76 @@ let ST = {
 };
 let CHARTS = {};
 
+// ═══════════════════════════════════════════════
+// SEARCHABLE DROPDOWN (sd)
+// ═══════════════════════════════════════════════
+const SD = {}; // { id: { value, items } }
+
+function sdInit(id, items, onChange){
+  const wrap = document.getElementById('sd-'+id);
+  const input = wrap.querySelector('.sd-input');
+  const search = wrap.querySelector('.sd-search');
+  const list = wrap.querySelector('.sd-list');
+
+  SD[id] = { value: '', items, onChange };
+
+  function render(filter=''){
+    const q = filter.toLowerCase();
+    const filtered = items.filter(v=> !q || v.toLowerCase().includes(q));
+    list.innerHTML = `<div class="sd-item all" data-val="">Tất cả</div>` +
+      filtered.map(v=>`<div class="sd-item${SD[id].value===v?' selected':''}" data-val="${v}">${v}</div>`).join('');
+    list.querySelectorAll('.sd-item').forEach(el=>{
+      el.addEventListener('mousedown', e=>{
+        e.preventDefault();
+        sdSet(id, el.dataset.val, true);
+        wrap.classList.remove('open');
+        input.classList.remove('active');
+      });
+    });
+  }
+
+  input.addEventListener('click', ()=>{
+    const isOpen = wrap.classList.contains('open');
+    // close all others
+    document.querySelectorAll('.sd-wrap.open').forEach(w=>{ w.classList.remove('open'); w.querySelector('.sd-input').classList.remove('active'); });
+    if(!isOpen){
+      wrap.classList.add('open');
+      input.classList.add('active');
+      search.value='';
+      render('');
+      setTimeout(()=>search.focus(), 50);
+    }
+  });
+
+  search.addEventListener('input', ()=> render(search.value));
+  search.addEventListener('keydown', e=>{ if(e.key==='Escape'){ wrap.classList.remove('open'); input.classList.remove('active'); } });
+
+  document.addEventListener('click', e=>{ if(!wrap.contains(e.target)){ wrap.classList.remove('open'); input.classList.remove('active'); } });
+
+  render('');
+}
+
+function sdSet(id, value, triggerChange=false, label=null){
+  const wrap = document.getElementById('sd-'+id);
+  if(!wrap) return;
+  const input = wrap.querySelector('.sd-input');
+  SD[id].value = value;
+  input.value = label || value || '';
+  input.placeholder = value ? '' : 'Tất cả';
+  input.classList.toggle('has-value', !!value);
+  // sync hidden select
+  const hiddenSel = document.getElementById('filter'+id.charAt(0).toUpperCase()+id.slice(1));
+  if(hiddenSel) hiddenSel.value = value;
+  if(triggerChange && SD[id].onChange) SD[id].onChange(value);
+}
+
+function sdGetValue(id){ return SD[id]?.value || ''; }
+
+function sdSetItems(id, items){
+  if(!SD[id]) return;
+  SD[id].items = items;
+}
+
 fetch('dashboard_data.json').then(r=>r.json()).then(d=>{ RAW=d; init(); });
 
 // ═══════════════════════════════════════════════
@@ -695,56 +798,58 @@ function init(){
 }
 
 function buildSelects(){
-  // Date selects: use months for compactness, but also allow picking specific days
+  // Date selects
   const months = RAW.months;
   const fFrom = sel('dateFrom'), fTo = sel('dateTo');
-
-  // Build month boundaries: first day of each month as "from", last day as "to"
   const monthStarts = {}, monthEnds = {};
-  RAW.days.forEach(d=>{
-    const ym = d.slice(0,7);
-    if(!monthStarts[ym]) monthStarts[ym] = d;
-    monthEnds[ym] = d;
-  });
-
+  RAW.days.forEach(d=>{ const ym=d.slice(0,7); if(!monthStarts[ym])monthStarts[ym]=d; monthEnds[ym]=d; });
   months.forEach(ym=>{
-    const lbl = fmtM(ym);
-    fFrom.innerHTML += `<option value="${monthStarts[ym]}" ${monthStarts[ym]===ST.fromD?'selected':''}>${lbl}</option>`;
-    fTo.innerHTML   += `<option value="${monthEnds[ym]}"   ${monthEnds[ym]===ST.toD?'selected':''}>${lbl}</option>`;
+    const lbl=fmtM(ym);
+    fFrom.innerHTML+=`<option value="${monthStarts[ym]}" ${monthStarts[ym]===ST.fromD?'selected':''}>${lbl}</option>`;
+    fTo.innerHTML  +=`<option value="${monthEnds[ym]}"   ${monthEnds[ym]===ST.toD?'selected':''}>${lbl}</option>`;
   });
 
-  // Also add "specific week" options as extra
-  const fp = sel('filterProject');
-  RAW.projects.filter(p=>p!=='Không rõ').sort().forEach(p=>{
-    fp.innerHTML += `<option value="${p}">${p}</option>`;
-  });
-
-  const ft = sel('filterTeam');
-  (RAW.teams||[]).sort().forEach(t=> ft.innerHTML+=`<option value="${t}">${t}</option>`);
-
-  const fn = sel('filterNetwork');
-  const topNets = Object.entries(RAW.network_monthly)
+  // Build item lists
+  const projItems = RAW.projects.filter(p=>p!=='Không rõ').sort();
+  const teamItems = (RAW.teams||[]).slice().sort();
+  const netItems  = Object.entries(RAW.network_monthly)
     .filter(([k])=>k!=='Không có Network')
     .map(([k,v])=>({k,t:sumObj(v,'revenue')}))
-    .sort((a,b)=>b.t-a.t).slice(0,30).map(x=>x.k);
-  topNets.forEach(n=> fn.innerHTML+=`<option value="${n}">${n}</option>`);
+    .sort((a,b)=>b.t-a.t).slice(0,50).map(x=>x.k);
+  const chItems   = [...RAW.channels].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>c.name);
 
-  const fc = sel('filterChannel');
-  [...RAW.channels].sort((a,b)=>a.name.localeCompare(b.name))
-    .forEach(ch=> fc.innerHTML+=`<option value="${ch.name}">${ch.name}</option>`);
+  // Init searchable dropdowns
+  sdInit('project', projItems, ()=>applyFilters());
+  sdInit('network',  netItems,  ()=>applyFilters());
+  sdInit('team',     teamItems, ()=>applyFilters());
+  sdInit('channel',  chItems,   (val)=>{
+    if(val){
+      // Auto-fill project, network, team from channel metadata
+      const ch = RAW.channels.find(c=>c.name===val);
+      if(ch){
+        if(ch.project && ch.project!=='Không rõ') sdSet('project', ch.project);
+        else sdSet('project','');
+        if(ch.network && ch.network!=='Không có Network') sdSet('network', ch.network);
+        else sdSet('network','');
+        if(ch.team) sdSet('team', ch.team);
+        else sdSet('team','');
+      }
+    }
+    applyFilters();
+  });
 }
 
 // ═══════════════════════════════════════════════
 // FILTERS
 // ═══════════════════════════════════════════════
 function applyFilters(){
-  ST.fromD    = sel('dateFrom').value;
-  ST.toD      = sel('dateTo').value;
-  ST.project  = sel('filterProject').value;
-  ST.network  = sel('filterNetwork').value;
-  ST.channel  = sel('filterChannel').value;
-  ST.team     = sel('filterTeam').value;
-  ST.page     = {proj:0,net:0,ch:0};
+  ST.fromD   = sel('dateFrom').value;
+  ST.toD     = sel('dateTo').value;
+  ST.project = sdGetValue('project');
+  ST.network = sdGetValue('network');
+  ST.channel = sdGetValue('channel');
+  ST.team    = sdGetValue('team');
+  ST.page    = {proj:0,net:0,ch:0};
   render();
 }
 function resetFilters(){
@@ -753,7 +858,7 @@ function resetFilters(){
   ST.toD   = days[days.length-1];
   sel('dateFrom').value = ST.fromD;
   sel('dateTo').value   = ST.toD;
-  ['filterProject','filterNetwork','filterChannel','filterTeam'].forEach(id=>{ sel(id).value=''; });
+  ['project','network','channel','team'].forEach(id=> sdSet(id,''));
   ST.project=ST.network=ST.channel=ST.team='';
   ST.page={proj:0,net:0,ch:0};
   render();
@@ -881,13 +986,33 @@ function filteredNetworks(){
   return [...new Set(chs.map(c=>c.network))].filter(n=>n&&n!=='Không có Network');
 }
 
+// ── Channel mode: khi filter 1 kênh cụ thể, dùng channel_daily thay project_daily ──
+// Trả về { daily, keys, label } để các hàm render dùng thống nhất
+function getAggSource(){
+  if(ST.channel && RAW.channel_daily?.[ST.channel]){
+    // Wrap channel_daily[name] thành cùng format với project_daily
+    const chName = ST.channel;
+    const wrapped = { [chName]: RAW.channel_daily[chName] };
+    return { daily: wrapped, keys: [chName], isChannel: true, channelName: chName };
+  }
+  const projs = filteredProjects();
+  return { daily: RAW.project_daily, keys: projs, isChannel: false, channelName: null };
+}
+
 // ═══════════════════════════════════════════════
 // BUILD TABLE DATA
 // ═══════════════════════════════════════════════
 function buildTableData(type){
   const pr = prevRange();
-  const keys  = type==='proj' ? filteredProjects() : filteredNetworks();
-  const daily = type==='proj' ? RAW.project_daily  : RAW.network_daily;
+  let keys, daily;
+  if(type==='proj'){
+    const src = getAggSource();
+    keys  = src.keys;
+    daily = src.daily;
+  } else {
+    keys  = filteredNetworks();
+    daily = RAW.network_daily;
+  }
 
   const cur  = aggDaily(daily, keys, ST.fromD, ST.toD);
   const prev = pr.from&&pr.to ? aggDaily(daily, keys, pr.from, pr.to) : {};
@@ -935,7 +1060,25 @@ function buildChannelData(){
 // RENDER
 // ═══════════════════════════════════════════════
 function render(){
-  const from=ST.fromD, to=ST.toD;
+  // Show/hide channel mode banner
+  const banner = sel('channel-mode-banner');
+  if(ST.channel){
+    const hasDaily = !!RAW.channel_daily?.[ST.channel];
+    banner.style.display = 'flex';
+    sel('channel-mode-name').textContent = ST.channel;
+    if(!hasDaily){
+      banner.style.background = '#e65100';
+      banner.querySelector('span:nth-child(3)').textContent =
+        '— Kênh này không có dữ liệu ngày chi tiết (chỉ top 50 kênh có daily data)';
+    } else {
+      banner.style.background = '#1a73e8';
+      banner.querySelector('span:nth-child(3)').textContent =
+        '— Tất cả biểu đồ hiển thị dữ liệu riêng của kênh này';
+    }
+  } else {
+    banner.style.display = 'none';
+  }
+
   renderKPI();
   renderRPMTab();
   renderViewTab();
@@ -947,9 +1090,9 @@ function renderKPI(){
   const chs = filteredChannels();
   const pr = prevRange();
   let tv=0,tr=0,ptv=0,ptr=0;
-  const projs = filteredProjects();
-  const cur  = aggDaily(RAW.project_daily, projs, ST.fromD, ST.toD);
-  const prev = pr.from&&pr.to ? aggDaily(RAW.project_daily, projs, pr.from, pr.to) : {};
+  const src  = getAggSource();
+  const cur  = aggDaily(src.daily, src.keys, ST.fromD, ST.toD);
+  const prev = pr.from&&pr.to ? aggDaily(src.daily, src.keys, pr.from, pr.to) : {};
   Object.values(cur).forEach(d=>{ tv+=d.views; tr+=d.revenue; });
   Object.values(prev).forEach(d=>{ ptv+=d.views; ptr+=d.revenue; });
 
@@ -978,15 +1121,20 @@ function renderKPI(){
 
 // ── RPM TAB ──
 function renderRPMTab(){
-  const projs = filteredProjects();
+  const src   = getAggSource();
   const nets  = filteredNetworks();
-  const pr = prevRange();
+  const pr    = prevRange();
+  const sectionLabel = src.isChannel ? `📺 Kênh: ${src.channelName}` : '📊 Dự án';
 
-  // Line – project
-  const {labels:pl, datasets:pd} = buildTimeSeries(RAW.project_daily, projs, ST.fromD, ST.toD, ST.gran);
+  // Update section title để người dùng biết đang xem ở mode nào
+  const secEl = document.querySelector('#tab-rpm .section-title');
+  if(secEl) secEl.textContent = src.isChannel ? `📺 RPM – Kênh: ${src.channelName}` : '📊 RPM theo Dự án';
+
+  // Line – project/channel
+  const {labels:pl, datasets:pd} = buildTimeSeries(src.daily, src.keys, ST.fromD, ST.toD, ST.gran);
   mkLine('c-rpm-proj-line', pl, pd, 'RPM ($)', v=>'$'+v.toFixed(2));
 
-  // Line – network (top 8)
+  // Line – network (top 8) — chỉ hiện khi không filter kênh đơn
   const netCur = aggDaily(RAW.network_daily, nets, ST.fromD, ST.toD);
   const top8nets = Object.entries(netCur).sort((a,b)=>b[1].revenue-a[1].revenue).slice(0,8).map(x=>x[0]);
   const {labels:nl, datasets:nd} = buildTimeSeries(RAW.network_daily, top8nets, ST.fromD, ST.toD, ST.gran);
@@ -1014,10 +1162,10 @@ function renderRPMTab(){
   renderTeamRPMScatter(ST.fromD, ST.toD);
   renderTeamMonetize();
 
-  // Scatter – project
-  const projCur  = aggDaily(RAW.project_daily, projs, ST.fromD, ST.toD);
-  const projPrev = pr.from&&pr.to ? aggDaily(RAW.project_daily, projs, pr.from, pr.to) : {};
-  mkScatter('c-rpm-proj-scatter', projs, projCur, projPrev, '#1a73e8', 'Dự án');
+  // Scatter – project/channel
+  const srcCur  = aggDaily(src.daily, src.keys, ST.fromD, ST.toD);
+  const srcPrev = pr.from&&pr.to ? aggDaily(src.daily, src.keys, pr.from, pr.to) : {};
+  mkScatter('c-rpm-proj-scatter', src.keys, srcCur, srcPrev, '#1a73e8', src.isChannel ? 'Kênh' : 'Dự án');
 
   // Scatter – network (top 20)
   const top20nets = Object.entries(netCur).sort((a,b)=>b[1].revenue-a[1].revenue).slice(0,20).map(x=>x[0]);
@@ -1249,19 +1397,20 @@ function mkBuckets(from, to, gran){
 
 // ── VIEW TAB main render ──
 function renderViewTab(){
-  const projs = filteredProjects();
+  const src   = getAggSource();
+  const projs = src.keys;
   const chs   = filteredChannels();
   const pr    = prevRange();
 
   // Aggregate
-  const cur  = aggDaily(RAW.project_daily, projs, ST.fromD, ST.toD);
-  const prev = pr.from&&pr.to ? aggDaily(RAW.project_daily, projs, pr.from, pr.to) : {};
+  const cur  = aggDaily(src.daily, projs, ST.fromD, ST.toD);
+  const prev = pr.from&&pr.to ? aggDaily(src.daily, projs, pr.from, pr.to) : {};
   let tv=0, ptv=0, avWT=0, wtCount=0;
   Object.values(cur).forEach(d=>{ tv+=d.views; });
   Object.values(prev).forEach(d=>{ ptv+=d.views; });
 
-  // avg watch time from top channels
-  const topChs = RAW.top_channels || [];
+  // avg watch time from top channels (filtered by channel if selected)
+  const topChs = getTopChannels();
   topChs.slice(0,20).forEach(tc=>{
     const d = RAW.channel_daily?.[tc.name];
     if(!d) return;
@@ -1306,10 +1455,17 @@ function renderViewTab(){
   renderTeamViewCompare(ST.fromD, ST.toD);
 }
 
+// ── Helper: lấy danh sách kênh có daily data, filter theo ST.channel nếu có ──
+function getTopChannels(){
+  const all = RAW.top_channels || [];
+  if(ST.channel) return all.filter(c=>c.name===ST.channel);
+  return all;
+}
+
 // ── Grouped bar: top N channels by view ──
 function renderViewChBar(){
   const topN = VST.topN;
-  const topChs = (RAW.top_channels||[]).slice(0, Math.max(topN, 20));
+  const topChs = ST.channel ? getTopChannels() : (RAW.top_channels||[]).slice(0, Math.max(topN, 20));
   const buckets = mkBuckets(ST.fromD, ST.toD, ST.gran);
 
   // Sort channels by total view in range, pick topN
@@ -1357,13 +1513,14 @@ function renderViewChBar(){
   });
 }
 
-// ── Stacked area: view by project ──
+// ── Stacked area: view by project/channel ──
 function renderViewStackedArea(projs, cur){
+  const src = getAggSource();
   const buckets = mkBuckets(ST.fromD, ST.toD, ST.gran);
   const topProjs = [...projs].sort((a,b)=>(cur[b]?.views||0)-(cur[a]?.views||0)).slice(0,8);
 
   const datasets = topProjs.map((p,i)=>{
-    const d = RAW.project_daily[p];
+    const d = src.daily[p];
     const data = buckets.map(b=>{ let v=0; b.days.forEach(day=>{ if(d&&d[day]) v+=d[day].views||0; }); return v||0; });
     return { label:p, data,
       backgroundColor: PALETTE[i%PALETTE.length]+'88',
@@ -1413,7 +1570,7 @@ function renderViewPie(projs, cur){
 
 // ── Scatter: View vs Watch Time ──
 function renderViewWTScatter(){
-  const topChs = RAW.top_channels || [];
+  const topChs = getTopChannels();
   const points = topChs.slice(0,30).map((tc,i)=>{
     const d = RAW.channel_daily?.[tc.name];
     if(!d) return null;
@@ -1456,7 +1613,7 @@ function renderViewWTScatter(){
 
 // ── Bar: Top 10 kênh View 48h ──
 function renderView48h(){
-  const topChs = RAW.top_channels || [];
+  const topChs = getTopChannels();
   // Use last 2 days in range as proxy for 48h
   const last2 = RAW.days.filter(d=>d>=ST.fromD&&d<=ST.toD).slice(-2);
   const data = topChs.slice(0,20).map(tc=>{
@@ -1491,7 +1648,7 @@ function renderView48h(){
 
 // ── Ranking table with sparkline ──
 function renderViewRankTable(){
-  const topChs = RAW.top_channels || [];
+  const topChs = getTopChannels();
   const pr     = prevRange();
   const inRange = (day) => day>=ST.fromD && day<=ST.toD;
   const inPrev  = (day) => pr.from && day>=pr.from && day<=pr.to;
@@ -1568,12 +1725,12 @@ function mkSparkSVG(data, w, h){
 
 // ── View by day of week ──
 function renderViewDOW(){
-  const projs = filteredProjects();
+  const src = getAggSource();
   const DOW_LABELS = ['Thứ 2','Thứ 3','Thứ 4','Thứ 5','Thứ 6','Thứ 7','Chủ nhật'];
   const buckets = [0,1,2,3,4,5,6].map(()=>({v:0,cnt:0}));
 
-  projs.forEach(p=>{
-    const d = RAW.project_daily[p];
+  src.keys.forEach(p=>{
+    const d = src.daily[p];
     if(!d) return;
     RAW.days.filter(day=>day>=ST.fromD&&day<=ST.toD).forEach(day=>{
       const dow = (new Date(day).getDay()+6)%7; // Mon=0
@@ -1646,10 +1803,10 @@ function srtR(col){ if(RST.sortCol===col)RST.sortDir*=-1; else{RST.sortCol=col;R
 function pgR(d){ RST.page=Math.max(0,RST.page+d); renderRevRankTable(); }
 
 function renderRevTab(){
-  const projs=filteredProjects(), chs=filteredChannels();
+  const src=getAggSource(), projs=src.keys, chs=filteredChannels();
   const pr=prevRange();
-  const cur =aggDaily(RAW.project_daily,projs,ST.fromD,ST.toD);
-  const prev=pr.from&&pr.to?aggDaily(RAW.project_daily,projs,pr.from,pr.to):{};
+  const cur =aggDaily(src.daily,projs,ST.fromD,ST.toD);
+  const prev=pr.from&&pr.to?aggDaily(src.daily,projs,pr.from,pr.to):{};
   const nets =filteredNetworks();
   const netCur =aggDaily(RAW.network_daily,nets,ST.fromD,ST.toD);
 
@@ -1683,10 +1840,10 @@ function renderRevTab(){
 
   const buckets = mkBuckets(ST.fromD, ST.toD, ST.gran);
 
-  // ── Stacked area: revenue by project ──
+  // ── Stacked area: revenue by project/channel ──
   const topProjs = [...projs].sort((a,b)=>(cur[b]?.revenue||0)-(cur[a]?.revenue||0)).slice(0,8);
   const stackedDS = topProjs.map((p,i)=>{
-    const d=RAW.project_daily[p];
+    const d=src.daily[p];
     const data=buckets.map(b=>{ let r=0; b.days.forEach(day=>{ if(d&&d[day]) r+=d[day].revenue||0; }); return +r.toFixed(2)||0; });
     return { label:p, data,
       backgroundColor: PALETTE[i%PALETTE.length]+'88',
@@ -1782,7 +1939,7 @@ function renderRevTab(){
   const DOW_LABELS=['Thứ 2','Thứ 3','Thứ 4','Thứ 5','Thứ 6','Thứ 7','Chủ nhật'];
   const dowBuckets=[0,1,2,3,4,5,6].map(()=>({r:0,cnt:0}));
   projs.forEach(p=>{
-    const d=RAW.project_daily[p]; if(!d) return;
+    const d=src.daily[p]; if(!d) return;
     RAW.days.filter(day=>day>=ST.fromD&&day<=ST.toD).forEach(day=>{
       const dow=(new Date(day).getDay()+6)%7;
       dowBuckets[dow].r+=d[day]?.revenue||0; dowBuckets[dow].cnt++;
@@ -1808,7 +1965,7 @@ function renderRevTab(){
   const allMonthlyBuckets=mkBuckets(ST.fromD,ST.toD,'month');
   let cumul=0;
   const cumulData=allMonthlyBuckets.map(b=>{
-    let r=0; projs.forEach(p=>{ const d=RAW.project_daily[p]; if(!d) return; b.days.forEach(day=>{ r+=d[day]?.revenue||0; }); });
+    let r=0; projs.forEach(p=>{ const d=src.daily[p]; if(!d) return; b.days.forEach(day=>{ r+=d[day]?.revenue||0; }); });
     cumul+=r; return +cumul.toFixed(2);
   });
   const ccum=sel('c-rev-cumul').getContext('2d');
@@ -1827,7 +1984,7 @@ function renderRevTab(){
 
   // ── Month-over-month growth bar ──
   const momData=allMonthlyBuckets.map((b,idx)=>{
-    let r=0; projs.forEach(p=>{ const d=RAW.project_daily[p]; if(!d) return; b.days.forEach(day=>{ r+=d[day]?.revenue||0; }); });
+    let r=0; projs.forEach(p=>{ const d=src.daily[p]; if(!d) return; b.days.forEach(day=>{ r+=d[day]?.revenue||0; }); });
     return +r.toFixed(2);
   });
   const momGrowth=momData.map((v,i)=>i===0?0:momData[i-1]>0?+((v-momData[i-1])/momData[i-1]*100).toFixed(1):0);
@@ -1857,7 +2014,7 @@ function renderRevTab(){
 
 // ── Revenue ranking table ──
 function renderRevRankTable(){
-  const topChs=RAW.top_channels||[];
+  const topChs=getTopChannels();
   const pr=prevRange();
   const inRange=day=>day>=ST.fromD&&day<=ST.toD;
   const inPrev =day=>pr.from&&day>=pr.from&&day<=pr.to;
@@ -1911,6 +2068,11 @@ function renderRevRankTable(){
 // ══════════════════════════════════════════
 
 function filteredTeams(){
+  // Khi filter kênh cụ thể, chỉ hiển thị team của kênh đó
+  if(ST.channel){
+    const ch = RAW.channels.find(c=>c.name===ST.channel);
+    if(ch?.team) return [ch.team];
+  }
   const t = ST.team;
   if(t) return [t];
   return RAW.teams || [];
